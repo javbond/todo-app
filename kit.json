@@ -1,0 +1,47 @@
+{
+  "name": "ai-sdlc-factory",
+  "version": "1.0.0",
+  "description": "AI-Native SDLC Factory — Transforms Claude Code into a complete software development team using orchestrated skills, enforced quality gates, and real-world Agile/Scrum methodology.",
+  "techStack": {
+    "frontend": "Angular 17+ (standalone components, NgRx, signals)",
+    "backend": "Spring Boot 3.x (Java 17+, DDD architecture)",
+    "database": "PostgreSQL (primary), Redis (cache)",
+    "messaging": "Kafka / RabbitMQ",
+    "search": "Elasticsearch",
+    "vcs": "GitHub + GitHub Projects"
+  },
+  "prerequisites": {
+    "claudeCode": "Claude Code CLI (latest)",
+    "node": "18+",
+    "java": "17+",
+    "maven": "3.9+",
+    "git": "2.x+",
+    "githubCli": "gh 2.x+",
+    "python": "3.x",
+    "tmux": "recommended (for agent team split-pane view)"
+  },
+  "kitContents": {
+    "agents": 11,
+    "skills": 10,
+    "rules": 5,
+    "hooks": 2,
+    "scripts": 3,
+    "phases": 9
+  },
+  "kitFiles": [
+    ".claude/agents/",
+    ".claude/skills/",
+    ".claude/rules/",
+    ".claude/hooks/",
+    ".claude/settings.local.json",
+    ".sdlc/state.json",
+    ".sdlc/phases/",
+    "docs/",
+    "scripts/",
+    "CLAUDE.md",
+    "USAGE-GUIDE.md",
+    ".gitignore",
+    "kit.json"
+  ],
+  "createdAt": "2026-03-01"
+}

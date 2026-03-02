@@ -1,0 +1,68 @@
+{
+  "project": "todo-app",
+  "currentPhase": "not_started",
+  "phases": {
+    "ideation": {
+      "status": "pending",
+      "artifacts": [],
+      "gatesPassed": false,
+      "completedAt": null
+    },
+    "requirements": {
+      "status": "pending",
+      "artifacts": [],
+      "gatesPassed": false,
+      "completedAt": null
+    },
+    "project_setup": {
+      "status": "pending",
+      "artifacts": [],
+      "gatesPassed": false,
+      "completedAt": null
+    },
+    "design": {
+      "status": "pending",
+      "artifacts": [],
+      "gatesPassed": false,
+      "completedAt": null
+    },
+    "development": {
+      "status": "pending",
+      "artifacts": [],
+      "gatesPassed": false,
+      "completedAt": null
+    },
+    "testing": {
+      "status": "pending",
+      "artifacts": [],
+      "gatesPassed": false,
+      "completedAt": null
+    },
+    "security": {
+      "status": "pending",
+      "artifacts": [],
+      "gatesPassed": false,
+      "completedAt": null
+    },
+    "code_review": {
+      "status": "pending",
+      "artifacts": [],
+      "gatesPassed": false,
+      "completedAt": null
+    },
+    "release": {
+      "status": "pending",
+      "artifacts": [],
+      "gatesPassed": false,
+      "completedAt": null
+    }
+  },
+  "github": {
+    "repo": "",
+    "owner": "",
+    "projectNumber": null
+  },
+  "sprints": [],
+  "createdAt": "2026-03-02T11:49:27Z",
+  "updatedAt": "2026-03-02T11:49:27Z"
+}
