@@ -1,0 +1,15 @@
+# Default owner for everything
+* @javbond
+
+# Backend
+/backend/ @javbond
+
+# Frontend
+/frontend/ @javbond
+
+# Infrastructure & CI/CD
+/infrastructure/ @javbond
+/.github/ @javbond
+
+# Documentation
+/docs/ @javbond

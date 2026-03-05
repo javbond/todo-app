@@ -1,21 +1,21 @@
 {
   "project": "todo-app",
-  "currentPhase": "not_started",
+  "currentPhase": "project_setup",
   "phases": {
     "ideation": {
-      "status": "pending",
-      "artifacts": [],
-      "gatesPassed": false,
-      "completedAt": null
+      "status": "completed",
+      "artifacts": ["docs/ideation/product-vision.md"],
+      "gatesPassed": true,
+      "completedAt": "2026-03-02T13:50:00Z"
     },
     "requirements": {
-      "status": "pending",
-      "artifacts": [],
-      "gatesPassed": false,
-      "completedAt": null
+      "status": "completed",
+      "artifacts": ["docs/prd/prd.md"],
+      "gatesPassed": true,
+      "completedAt": "2026-03-02T14:20:00Z"
     },
     "project_setup": {
-      "status": "pending",
+      "status": "in_progress",
       "artifacts": [],
       "gatesPassed": false,
       "completedAt": null
@@ -64,5 +64,5 @@
   },
   "sprints": [],
   "createdAt": "2026-03-02T11:49:27Z",
-  "updatedAt": "2026-03-02T11:49:27Z"
+  "updatedAt": "2026-03-02T14:20:00Z"
 }
