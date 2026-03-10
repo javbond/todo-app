@@ -1,0 +1,58 @@
+%% Clarity (todo-app) -- Bounded Context Map
+%% Shows relationships between bounded contexts and external systems.
+
+graph TD
+    subgraph Modular_Monolith["Modular Monolith (com.clarity)"]
+        subgraph IAC["Identity & Access (Supporting)"]
+            IAC_User["User Aggregate"]
+            IAC_RefreshToken["RefreshToken Entity"]
+            IAC_AuthService["AuthApplicationService"]
+            IAC_Events["Events:<br/>UserRegisteredEvent<br/>UserLockedOutEvent"]
+        end
+
+        subgraph TM["Task Management (Core)"]
+            TM_Task["Task Aggregate"]
+            TM_TaskList["TaskList Aggregate"]
+            TM_TaskAppSvc["TaskApplicationService"]
+            TM_ListAppSvc["TaskListApplicationService"]
+            TM_TodaySvc["TodayViewApplicationService"]
+            TM_Events["Events:<br/>TaskCreatedEvent<br/>TaskCompletedEvent<br/>TaskDeletedEvent<br/>TaskListCreatedEvent<br/>TaskListDeletedEvent"]
+        end
+
+        subgraph SK["Shared Kernel"]
+            SK_Base["BaseEntity<br/>AuditableEntity"]
+            SK_Error["GlobalExceptionHandler<br/>ErrorResponse"]
+            SK_Config["CorsConfig<br/>RedisConfig"]
+        end
+    end
+
+    subgraph External["External Systems"]
+        Browser["Browser Notification API<br/>(Client-Side)"]
+        SMTP["SMTP Server<br/>(Future)"]
+        OAuth["OAuth2 Providers<br/>(v1.1)"]
+    end
+
+    %% Customer-Supplier: IAC supplies userId to Task Management
+    IAC_AuthService -->|"Customer-Supplier<br/>userId (UUID)"| TM_TaskAppSvc
+    IAC_AuthService -->|"Customer-Supplier<br/>userId (UUID)"| TM_ListAppSvc
+
+    %% Domain Event: UserRegisteredEvent triggers Inbox creation
+    IAC_Events -->|"Domain Event<br/>UserRegisteredEvent"| TM_ListAppSvc
+
+    %% Anti-Corruption Layer: Task Management to Browser Notifications
+    TM_Task -->|"ACL<br/>ReminderSettings → Notification API"| Browser
+
+    %% Shared Kernel usage
+    IAC_User -.->|extends| SK_Base
+    TM_Task -.->|extends| SK_Base
+    TM_TaskList -.->|extends| SK_Base
+
+    %% Future integrations
+    IAC_AuthService -.->|"Future"| SMTP
+    IAC_AuthService -.->|"Future (v1.1)"| OAuth
+
+    %% Styling
+    style IAC fill:#fef3c7,stroke:#d97706,stroke-width:2px
+    style TM fill:#dbeafe,stroke:#2563eb,stroke-width:3px
+    style SK fill:#f3e8ff,stroke:#7c3aed,stroke-width:1px
+    style External fill:#fee2e2,stroke:#dc2626,stroke-width:1px

@@ -1,0 +1,63 @@
+%% Clarity (todo-app) -- Token Refresh Sequence Diagram
+%% Generated: 2026-03-07
+
+sequenceDiagram
+    actor User as Browser
+    participant SPA as Angular SPA
+    participant Intc as AuthInterceptor
+    participant API as API Endpoint
+    participant Auth as AuthService
+    participant Ctrl as AuthController
+    participant Svc as AuthApplicationService
+    participant JWT as JwtTokenProvider
+    participant RTRepo as RefreshTokenRepository
+
+    User->>SPA: Trigger API call (e.g., load tasks)
+    SPA->>Intc: GET /api/v1/tasks (+ expired JWT)
+    Intc->>Intc: Attach Authorization: Bearer (expired)
+    Intc->>API: GET /api/v1/tasks
+    API-->>Intc: 401 Unauthorized (token expired)
+
+    Intc->>Intc: Is this a 401? Yes.<br/>Is refresh in progress? No.<br/>Set refreshing = true.<br/>Queue original request.
+
+    Intc->>Auth: refreshToken()
+    Auth->>Ctrl: POST /api/v1/auth/refresh<br/>{refreshToken}
+    Ctrl->>Svc: refresh(refreshToken)
+    Svc->>RTRepo: findByToken(refreshToken)
+    RTRepo-->>Svc: RefreshToken entity
+
+    alt Token valid (not expired, not revoked)
+        Svc->>RTRepo: revoke(oldRefreshToken)
+        Note over Svc: Refresh token rotation:<br/>old token invalidated
+
+        Svc->>JWT: generateAccessToken(user)
+        JWT-->>Svc: new accessToken (15 min)
+        Svc->>JWT: generateRefreshToken(user)
+        JWT-->>Svc: new refreshToken (7 day)
+        Svc->>RTRepo: save(newRefreshToken)
+
+        Svc-->>Ctrl: AuthResponse
+        Ctrl-->>Auth: 200 OK {accessToken, refreshToken, expiresIn}
+        Auth->>Auth: Store new tokens in memory
+        Auth-->>Intc: New access token
+
+        Intc->>Intc: Set refreshing = false
+        Intc->>Intc: Replay queued requests with new token
+
+        Intc->>API: GET /api/v1/tasks (+ new JWT)
+        API-->>Intc: 200 OK {tasks}
+        Intc-->>SPA: 200 OK {tasks}
+        SPA-->>User: Render tasks (seamless)
+    else Token invalid (expired or revoked)
+        Svc-->>Ctrl: throw TokenExpiredException
+        Ctrl-->>Auth: 401 Unauthorized
+        Auth->>Auth: Clear stored tokens
+        Auth-->>Intc: Refresh failed
+
+        Intc->>Intc: Set refreshing = false
+        Intc->>Intc: Reject all queued requests
+
+        Intc-->>SPA: 401 (propagated)
+        SPA->>SPA: Router.navigate to /auth/login
+        SPA-->>User: Redirect to login page
+    end

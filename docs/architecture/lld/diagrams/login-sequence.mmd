@@ -1,0 +1,60 @@
+%% Clarity (todo-app) -- User Login Sequence Diagram
+%% Generated: 2026-03-07
+
+sequenceDiagram
+    actor User as Browser
+    participant SPA as Angular SPA
+    participant Ctrl as AuthController
+    participant Svc as AuthApplicationService
+    participant Dom as User (Domain)
+    participant URepo as UserRepository
+    participant JWT as JwtTokenProvider
+    participant RTRepo as RefreshTokenRepository
+
+    User->>SPA: Enter email + password, click Login
+    SPA->>Ctrl: POST /api/v1/auth/login<br/>{email, password}
+    Ctrl->>Svc: login(request)
+    Svc->>URepo: findByEmail(email)
+    URepo-->>Svc: Optional(User)
+
+    alt User not found
+        Svc-->>Ctrl: throw InvalidCredentialsException
+        Ctrl-->>SPA: 401 {code: INVALID_CREDENTIALS}
+        SPA-->>User: "Invalid email or password"
+    end
+
+    Svc->>Dom: user.isAccountLocked()
+
+    alt Account is locked
+        Dom-->>Svc: true (lockedUntil > now)
+        Svc-->>Ctrl: throw AccountLockedException
+        Ctrl-->>SPA: 423 {code: ACCOUNT_LOCKED}
+        SPA-->>User: "Account locked. Try again later."
+    end
+
+    Dom-->>Svc: false (not locked)
+    Svc->>Svc: BCrypt.matches(password, user.passwordHash)
+
+    alt Password incorrect
+        Svc->>Dom: user.recordFailedLogin()
+        Note over Dom: failedAttempts++<br/>if attempts >= 5: lockAccount()
+        Svc->>URepo: save(user)
+        Svc-->>Ctrl: throw InvalidCredentialsException
+        Ctrl-->>SPA: 401 {code: INVALID_CREDENTIALS}
+        SPA-->>User: "Invalid email or password"
+    end
+
+    Note over Svc: Password matches - success path
+    Svc->>Dom: user.resetFailedLoginAttempts()
+    Svc->>URepo: save(user)
+
+    Svc->>JWT: generateAccessToken(user)
+    JWT-->>Svc: accessToken (15 min expiry)
+    Svc->>JWT: generateRefreshToken(user)
+    JWT-->>Svc: refreshToken (7 day expiry)
+    Svc->>RTRepo: save(RefreshToken)
+
+    Svc-->>Ctrl: AuthResponse
+    Ctrl-->>SPA: 200 OK {accessToken, refreshToken, expiresIn, tokenType}
+    SPA->>SPA: Store tokens in memory
+    SPA-->>User: Redirect to /today

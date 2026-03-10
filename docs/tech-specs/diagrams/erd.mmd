@@ -1,0 +1,60 @@
+erDiagram
+    users ||--o{ refresh_tokens : "has many"
+    users ||--o{ task_lists : "owns"
+    users ||--o{ tasks : "owns"
+    task_lists ||--o{ tasks : "contains"
+
+    users {
+        uuid id PK
+        varchar email UK "UNIQUE, max 255"
+        varchar password_hash "BCrypt cost 12+"
+        varchar display_name "1-100 chars"
+        boolean is_locked "default false"
+        int failed_login_attempts "default 0"
+        timestamptz locked_until "nullable"
+        varchar password_reset_token "nullable"
+        timestamptz password_reset_expiry "nullable"
+        timestamptz created_at
+        timestamptz updated_at
+        int version "optimistic lock"
+    }
+
+    refresh_tokens {
+        uuid id PK
+        varchar token UK "opaque UUID v4"
+        uuid user_id FK
+        timestamptz expires_at "7 day expiry"
+        boolean is_revoked "default false"
+        timestamptz created_at
+    }
+
+    task_lists {
+        uuid id PK
+        varchar name "1-50 chars"
+        varchar color "8 presets"
+        int sort_order "sidebar order"
+        boolean is_default "true for Inbox"
+        uuid user_id FK
+        timestamptz created_at
+        timestamptz updated_at
+        int version "optimistic lock"
+    }
+
+    tasks {
+        uuid id PK
+        varchar title "1-255 chars NOT NULL"
+        text description "max 2000, nullable"
+        varchar priority "P1 P2 P3 P4"
+        date due_date "nullable"
+        varchar reminder_interval "NONE AT_DUE etc"
+        boolean is_completed "default false"
+        boolean is_deleted "soft delete"
+        boolean is_today "Today View flag"
+        timestamptz completed_at "nullable"
+        int sort_order "list order"
+        uuid list_id FK
+        uuid user_id FK
+        timestamptz created_at
+        timestamptz updated_at
+        int version "optimistic lock"
+    }

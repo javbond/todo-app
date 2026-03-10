@@ -1,0 +1,1068 @@
+openapi: 3.0.3
+info:
+  title: Clarity Task Management API
+  description: |
+    REST API for Clarity — a minimalist personal task management application.
+    Built with Spring Boot 3.x following DDD architecture.
+  version: 1.0.0
+  contact:
+    name: Clarity Team
+    url: https://github.com/javbond/todo-app
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development
+  - url: https://api.clarity.app/api/v1
+    description: Production
+
+tags:
+  - name: Auth
+    description: User authentication and account management
+  - name: Tasks
+    description: Task CRUD and lifecycle operations
+  - name: Lists
+    description: Task list (category) management
+  - name: Today
+    description: Today View focus mode
+  - name: Health
+    description: Application health checks
+
+# ============================================================
+# PATHS
+# ============================================================
+paths:
+
+  # ----------------------------------------------------------
+  # AUTH ENDPOINTS
+  # ----------------------------------------------------------
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      operationId: registerUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              email: sam@example.com
+              password: SecurePass1
+              displayName: Sam Rivera
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email already exists (generic message)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate with email and password
+      operationId: loginUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: sam@example.com
+              password: SecurePass1
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '423':
+          description: Account locked after too many failed attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Invalidate refresh token and blacklist access token
+      operationId: logoutUser
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+      responses:
+        '204':
+          description: Logged out successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token using refresh token
+      operationId: refreshToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Token refreshed (new refresh token issued via rotation)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Refresh token expired or revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request password reset (always returns 200 to prevent email enumeration)
+      operationId: forgotPassword
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: Reset request acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: "If an account exists with this email, a password reset link has been sent."
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password using a valid reset token
+      operationId: resetPassword
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: "Password has been reset successfully. Please log in with your new password."
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Reset token expired or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ----------------------------------------------------------
+  # TASK ENDPOINTS
+  # ----------------------------------------------------------
+  /tasks:
+    get:
+      tags: [Tasks]
+      summary: List tasks with optional filters and pagination
+      operationId: listTasks
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: listId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by task list ID
+        - name: completed
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Include completed tasks
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [P1, P2, P3, P4]
+          description: Filter by priority level
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Paginated list of tasks
+          headers:
+            X-Total-Count:
+              schema:
+                type: integer
+              description: Total number of matching tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskPageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Tasks]
+      summary: Create a new task
+      operationId: createTask
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+            example:
+              title: Prepare quarterly report
+              description: Compile Q1 data from all departments
+              priority: P1
+              dueDate: "2026-03-10"
+              listId: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Specified listId not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          $ref: '#/components/responses/BusinessRuleViolation'
+
+  /tasks/{id}:
+    get:
+      tags: [Tasks]
+      summary: Get a task by ID
+      operationId: getTask
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Tasks]
+      summary: Update a task (partial update — all fields optional)
+      operationId: updateTask
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+      responses:
+        '200':
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/BusinessRuleViolation'
+
+    delete:
+      tags: [Tasks]
+      summary: Soft-delete a task
+      operationId: deleteTask
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '204':
+          description: Task soft-deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tasks/{id}/complete:
+    patch:
+      tags: [Tasks]
+      summary: Mark a task as completed
+      operationId: completeTask
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Task completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/BusinessRuleViolation'
+
+  /tasks/{id}/uncomplete:
+    patch:
+      tags: [Tasks]
+      summary: Revert task completion (undo)
+      operationId: uncompleteTask
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Task reverted to active
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/BusinessRuleViolation'
+
+  /tasks/{id}/today:
+    patch:
+      tags: [Tasks, Today]
+      summary: Toggle task in Today View
+      operationId: toggleTaskToday
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Today status toggled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ----------------------------------------------------------
+  # TODAY VIEW ENDPOINT
+  # ----------------------------------------------------------
+  /tasks/today:
+    get:
+      tags: [Today]
+      summary: Get Today View (today, overdue, completed today)
+      operationId: getTodayView
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Today View data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodayViewResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ----------------------------------------------------------
+  # LIST ENDPOINTS
+  # ----------------------------------------------------------
+  /lists:
+    get:
+      tags: [Lists]
+      summary: Get all lists for the authenticated user with active task counts
+      operationId: listTaskLists
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User's task lists with counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskListWithCountResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Lists]
+      summary: Create a new task list
+      operationId: createTaskList
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateListRequest'
+            example:
+              name: Work
+              color: BLUE
+      responses:
+        '201':
+          description: List created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: List name already exists for this user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /lists/{id}:
+    get:
+      tags: [Lists]
+      summary: Get a task list by ID
+      operationId: getTaskList
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: List details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Lists]
+      summary: Update a task list (name and/or color)
+      operationId: updateTaskList
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateListRequest'
+      responses:
+        '200':
+          description: List updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/BusinessRuleViolation'
+
+    delete:
+      tags: [Lists]
+      summary: Delete a task list (tasks moved to Inbox)
+      operationId: deleteTaskList
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '204':
+          description: List deleted, tasks moved to Inbox
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Cannot delete default Inbox list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ----------------------------------------------------------
+  # HEALTH ENDPOINT
+  # ----------------------------------------------------------
+  /health:
+    get:
+      tags: [Health]
+      summary: Application health check
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: Application is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+# ============================================================
+# COMPONENTS
+# ============================================================
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token (15 min expiry)
+
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Resource UUID
+
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+      description: Page number (0-indexed)
+
+    SizeParam:
+      name: size
+      in: query
+      schema:
+        type: integer
+        default: 50
+        minimum: 1
+        maximum: 200
+      description: Page size
+
+    SortParam:
+      name: sort
+      in: query
+      schema:
+        type: string
+        default: priority,asc
+        example: priority,asc
+      description: "Sort field and direction (e.g. priority,asc or dueDate,desc)"
+
+  schemas:
+
+    # ------ AUTH SCHEMAS ------
+
+    RegisterRequest:
+      type: object
+      required: [email, password, displayName]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          minLength: 8
+          description: "Min 8 chars, at least 1 uppercase letter, at least 1 digit"
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 100
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    LogoutRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    ResetPasswordRequest:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token (15 min expiry)
+        refreshToken:
+          type: string
+          description: Opaque refresh token (7 day expiry)
+        expiresIn:
+          type: integer
+          format: int64
+          description: Seconds until access token expiry
+          example: 900
+        tokenType:
+          type: string
+          example: Bearer
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
+    # ------ TASK SCHEMAS ------
+
+    CreateTaskRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 2000
+          nullable: true
+        priority:
+          type: string
+          enum: [P1, P2, P3, P4]
+          default: P4
+        dueDate:
+          type: string
+          format: date
+          nullable: true
+          description: "ISO 8601 date (YYYY-MM-DD)"
+        listId:
+          type: string
+          format: uuid
+          nullable: true
+          description: "Defaults to user's Inbox list if not provided"
+
+    UpdateTaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 2000
+          nullable: true
+        priority:
+          type: string
+          enum: [P1, P2, P3, P4]
+        dueDate:
+          type: string
+          format: date
+          nullable: true
+        listId:
+          type: string
+          format: uuid
+
+    TaskResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        priority:
+          type: string
+          enum: [P1, P2, P3, P4]
+        priorityLabel:
+          type: string
+          enum: [Urgent, High, Medium, Low]
+        priorityColor:
+          type: string
+          description: Hex color code
+          example: "#EF4444"
+        dueDate:
+          type: string
+          format: date
+          nullable: true
+        isCompleted:
+          type: boolean
+        isToday:
+          type: boolean
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        listId:
+          type: string
+          format: uuid
+        listName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TaskPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    TodayViewResponse:
+      type: object
+      properties:
+        today:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskResponse'
+          description: Tasks due today or manually added to Today View
+        overdue:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskResponse'
+          description: Tasks past their due date (collapsed by default)
+        completedToday:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskResponse'
+          description: Tasks completed today
+        totalToday:
+          type: integer
+          description: Total tasks planned for today (today + overdue)
+        completedCount:
+          type: integer
+          description: Number of tasks completed today
+
+    # ------ LIST SCHEMAS ------
+
+    CreateListRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        color:
+          type: string
+          enum: [RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE, PINK, GRAY]
+          default: GRAY
+
+    UpdateListRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        color:
+          type: string
+          enum: [RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE, PINK, GRAY]
+
+    TaskListResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        color:
+          type: string
+          enum: [RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE, PINK, GRAY]
+        colorHex:
+          type: string
+          description: Hex color code
+          example: "#3B82F6"
+        sortOrder:
+          type: integer
+        isDefault:
+          type: boolean
+          description: True for the auto-created Inbox list
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TaskListWithCountResponse:
+      allOf:
+        - $ref: '#/components/schemas/TaskListResponse'
+        - type: object
+          properties:
+            activeTaskCount:
+              type: integer
+              format: int64
+              description: Number of active (non-completed, non-deleted) tasks
+
+    # ------ HEALTH SCHEMA ------
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: UP
+        database:
+          type: string
+          example: UP
+        redis:
+          type: string
+          example: UP
+        timestamp:
+          type: string
+          format: date-time
+
+    # ------ ERROR SCHEMAS ------
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          description: HTTP status code
+        code:
+          type: string
+          description: Machine-readable error code
+          enum:
+            - VALIDATION_ERROR
+            - INVALID_CREDENTIALS
+            - TOKEN_EXPIRED
+            - TOKEN_INVALID
+            - ACCESS_DENIED
+            - RESOURCE_NOT_FOUND
+            - EMAIL_ALREADY_EXISTS
+            - BUSINESS_RULE_VIOLATION
+            - ACCOUNT_LOCKED
+            - RATE_LIMIT_EXCEEDED
+            - INTERNAL_ERROR
+        message:
+          type: string
+          description: Human-readable error description
+        details:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/FieldError'
+          description: Field-level validation errors (only for 400)
+        timestamp:
+          type: string
+          format: date-time
+        traceId:
+          type: string
+          format: uuid
+          description: Correlation ID for log tracing
+
+    FieldError:
+      type: object
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            status: 400
+            code: VALIDATION_ERROR
+            message: Validation failed
+            details:
+              - field: title
+                message: must not be blank
+            timestamp: "2026-03-07T12:00:00Z"
+            traceId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+
+    Unauthorized:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Forbidden:
+      description: Insufficient permissions (resource belongs to another user)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    BusinessRuleViolation:
+      description: Domain invariant violated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    RateLimited:
+      description: Too many requests
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

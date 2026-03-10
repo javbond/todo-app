@@ -1,0 +1,50 @@
+%% Clarity (todo-app) -- System Context Diagram
+%% Shows the external actors and systems that interact with Clarity
+
+graph TD
+    subgraph External Actors
+        User["User<br/>(Browser Client)"]
+    end
+
+    subgraph Clarity System
+        Nginx["Nginx<br/>Reverse Proxy<br/>(TLS Termination)"]
+        SpringBoot["Spring Boot 3.x<br/>Modular Monolith<br/>(Task Management Context)"]
+        PostgreSQL[("PostgreSQL 15+<br/>Primary Data Store<br/>(users, tasks, task_lists,<br/>refresh_tokens)")]
+        Redis[("Redis 7+<br/>Cache + Token Store<br/>(task caches, token blacklist)")]
+    end
+
+    subgraph Client-Side Services
+        BrowserNotif["Browser Notification API<br/>(Client-Side Reminders)"]
+        LocalStorage["Browser localStorage<br/>(Theme, Sort Preferences)"]
+    end
+
+    subgraph Future Integrations
+        SMTP["SMTP Server<br/>(Password Reset Emails)"]
+        GoogleOAuth["Google OAuth2<br/>(v1.1)"]
+        GitHubOAuth["GitHub OAuth2<br/>(v1.1)"]
+        MessageBroker["Kafka / RabbitMQ<br/>(Post-MVP)"]
+    end
+
+    User -->|"HTTPS<br/>REST API + SPA"| Nginx
+    Nginx -->|"Serves Angular<br/>Static Assets"| User
+    Nginx -->|"Proxies /api/*<br/>to port 8080"| SpringBoot
+    SpringBoot -->|"JDBC<br/>(HikariCP Pool)"| PostgreSQL
+    SpringBoot -->|"Lettuce Client<br/>(Cache + Blacklist)"| Redis
+    User -.->|"Notification.requestPermission()"| BrowserNotif
+    User -.->|"getItem/setItem"| LocalStorage
+    SpringBoot -.->|"Future"| SMTP
+    SpringBoot -.->|"Future"| GoogleOAuth
+    SpringBoot -.->|"Future"| GitHubOAuth
+    SpringBoot -.->|"Future"| MessageBroker
+
+    style User fill:#E3F2FD,stroke:#1565C0,color:#000
+    style Nginx fill:#FFF3E0,stroke:#E65100,color:#000
+    style SpringBoot fill:#E8F5E9,stroke:#2E7D32,color:#000
+    style PostgreSQL fill:#F3E5F5,stroke:#6A1B9A,color:#000
+    style Redis fill:#FCE4EC,stroke:#B71C1C,color:#000
+    style BrowserNotif fill:#F5F5F5,stroke:#616161,color:#000
+    style LocalStorage fill:#F5F5F5,stroke:#616161,color:#000
+    style SMTP fill:#ECEFF1,stroke:#90A4AE,color:#000
+    style GoogleOAuth fill:#ECEFF1,stroke:#90A4AE,color:#000
+    style GitHubOAuth fill:#ECEFF1,stroke:#90A4AE,color:#000
+    style MessageBroker fill:#ECEFF1,stroke:#90A4AE,color:#000

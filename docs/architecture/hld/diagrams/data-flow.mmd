@@ -1,0 +1,75 @@
+%% Clarity (todo-app) -- Data Flow Diagram
+%% Shows the flow of data through all layers for a typical task creation
+
+sequenceDiagram
+    actor User
+    participant UI as Angular SPA<br/>(Component)
+    participant Store as NgRx Store<br/>(Effect)
+    participant HTTP as TaskService<br/>(HTTP Client)
+    participant Ctrl as TaskController<br/>(API Layer)
+    participant AppSvc as TaskApplicationService<br/>(Application Layer)
+    participant Agg as Task Aggregate<br/>(Domain Layer)
+    participant Repo as JpaTaskRepository<br/>(Infrastructure)
+    participant DB as PostgreSQL
+    participant Cache as Redis
+
+    Note over User,Cache: CREATE TASK FLOW
+
+    User->>UI: Click "Add Task", type title, press Enter
+    UI->>Store: Dispatch CreateTask action
+    Store->>Store: Reducer: add task optimistically<br/>(pending state)
+    Store->>HTTP: Effect: call taskService.create()
+    HTTP->>Ctrl: POST /api/v1/tasks<br/>{ title, listId, priority }
+    Ctrl->>Ctrl: @Valid: validate CreateTaskRequest DTO
+    Ctrl->>AppSvc: createTask(CreateTaskCommand)
+    AppSvc->>Agg: Task.create(title, listId, priority, userId)
+    Agg->>Agg: Enforce invariants:<br/>- title not blank<br/>- title <= 255 chars<br/>- valid priority
+    Agg-->>AppSvc: Return Task + TaskCreatedEvent
+    AppSvc->>Repo: taskRepository.save(task)
+    Repo->>DB: INSERT INTO tasks (...)
+    DB-->>Repo: Confirm insert
+    AppSvc->>Cache: Invalidate cache keys:<br/>cache:tasks:user:{userId}:*<br/>cache:today:user:{userId}<br/>cache:counts:user:{userId}
+    Cache-->>AppSvc: OK
+    AppSvc-->>Ctrl: Return TaskResponse DTO
+    Ctrl-->>HTTP: 201 Created { task }
+    HTTP-->>Store: Effect: dispatch CreateTaskSuccess
+    Store->>Store: Reducer: replace optimistic task<br/>with server-confirmed task
+    Store-->>UI: Selector emits updated task list
+    UI-->>User: Task appears in list<br/>(already visible from optimistic update)
+
+    Note over User,Cache: READ TASKS FLOW (Cache Hit)
+
+    User->>UI: Navigate to task list
+    UI->>Store: Dispatch LoadTasks action
+    Store->>HTTP: Effect: call taskService.getByList(listId)
+    HTTP->>Ctrl: GET /api/v1/tasks?listId={id}
+    Ctrl->>AppSvc: getTasks(TaskQuery)
+    AppSvc->>Cache: Check cache:tasks:user:{userId}:list:{listId}
+    Cache-->>AppSvc: CACHE HIT: return cached tasks
+    AppSvc-->>Ctrl: Return List of TaskResponse
+    Ctrl-->>HTTP: 200 OK { tasks[] }
+    HTTP-->>Store: Effect: dispatch LoadTasksSuccess
+    Store->>Store: Reducer: set tasks in state
+    Store-->>UI: Selector emits task list
+    UI-->>User: Render task list
+
+    Note over User,Cache: READ TASKS FLOW (Cache Miss)
+
+    User->>UI: Navigate to different list
+    UI->>Store: Dispatch LoadTasks action
+    Store->>HTTP: Effect: call taskService.getByList(listId)
+    HTTP->>Ctrl: GET /api/v1/tasks?listId={id}
+    Ctrl->>AppSvc: getTasks(TaskQuery)
+    AppSvc->>Cache: Check cache:tasks:user:{userId}:list:{listId}
+    Cache-->>AppSvc: CACHE MISS
+    AppSvc->>Repo: taskRepository.findByUserAndList(userId, listId)
+    Repo->>DB: SELECT * FROM tasks WHERE ...
+    DB-->>Repo: Return result set
+    Repo-->>AppSvc: Return List of Task
+    AppSvc->>Cache: SET cache:tasks:user:{userId}:list:{listId}<br/>TTL=5min
+    Cache-->>AppSvc: OK
+    AppSvc-->>Ctrl: Return List of TaskResponse
+    Ctrl-->>HTTP: 200 OK { tasks[] }
+    HTTP-->>Store: Effect: dispatch LoadTasksSuccess
+    Store-->>UI: Render task list
+    UI-->>User: Display tasks

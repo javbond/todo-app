@@ -1,0 +1,59 @@
+%% Clarity (todo-app) -- Today View Load Sequence Diagram
+%% Generated: 2026-03-07
+
+sequenceDiagram
+    actor User as Browser
+    participant SPA as Angular SPA
+    participant Guard as AuthGuard
+    participant Store as NgRx Store
+    participant Effect as NgRx Effect
+    participant TkSvc as TaskService
+    participant Ctrl as TaskController
+    participant Svc as TaskApplicationService
+    participant Repo as TaskRepository
+    participant Cache as Redis Cache
+
+    User->>SPA: Navigate to / or /today
+    SPA->>Guard: canActivate()
+    Guard-->>SPA: true (token valid)
+
+    SPA->>Store: dispatch(loadTodayView())
+    Store-->>SPA: loading = true
+    SPA-->>User: Show skeleton loader
+
+    Store->>Effect: loadTodayView$ effect
+    Effect->>TkSvc: getTodayView()
+    TkSvc->>Ctrl: GET /api/v1/tasks/today (+ Bearer JWT)
+    Ctrl->>Svc: getTodayView(userId)
+
+    Svc->>Cache: GET cache:today:user:{userId}
+
+    alt Cache HIT
+        Cache-->>Svc: cached TodayViewResponse
+    else Cache MISS
+        Cache-->>Svc: null
+
+        par Parallel queries
+            Svc->>Repo: findTodayTasks(userId, today)
+            Note over Repo: WHERE (due_date = today OR is_today = true)<br/>AND is_completed = false AND is_deleted = false
+            Repo-->>Svc: todayTasks
+        and
+            Svc->>Repo: findOverdueTasks(userId, today)
+            Note over Repo: WHERE due_date < today<br/>AND is_completed = false AND is_deleted = false
+            Repo-->>Svc: overdueTasks
+        and
+            Svc->>Repo: findCompletedTodayTasks(userId, today)
+            Note over Repo: WHERE completed_at::date = today
+            Repo-->>Svc: doneTodayTasks
+        end
+
+        Svc->>Cache: SET cache:today:user:{userId} TTL=2min
+    end
+
+    Svc-->>Ctrl: TodayViewResponse
+    Ctrl-->>TkSvc: 200 OK {todayTasks, overdueTasks, doneTodayTasks, totalToday, completedToday}
+    TkSvc-->>Effect: TodayViewResponse
+    Effect->>Store: dispatch(loadTodayViewSuccess(response))
+
+    Store-->>SPA: State updated (loading=false)
+    SPA-->>User: Render: progress counter + today tasks + overdue (collapsed) + done today

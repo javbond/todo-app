@@ -1,0 +1,41 @@
+%% Clarity (todo-app) -- User Registration Sequence Diagram
+%% Generated: 2026-03-07
+
+sequenceDiagram
+    actor User as Browser
+    participant SPA as Angular SPA
+    participant Ctrl as AuthController
+    participant Svc as AuthApplicationService
+    participant Dom as User (Domain)
+    participant URepo as UserRepository
+    participant TLSvc as TaskListApplicationService
+    participant TLRepo as TaskListRepository
+    participant JWT as JwtTokenProvider
+
+    User->>SPA: Fill registration form + submit
+    SPA->>Ctrl: POST /api/v1/auth/register<br/>{email, password, displayName}
+    Ctrl->>Ctrl: @Valid (Bean Validation)
+    Ctrl->>Svc: register(request)
+    Svc->>URepo: existsByEmail(email)
+    URepo-->>Svc: false
+    Svc->>Svc: BCrypt.hash(password, costFactor=12)
+    Svc->>Dom: User.register(email, hash, displayName)
+    Dom-->>Svc: User instance + UserRegisteredEvent
+    Svc->>URepo: save(user)
+    URepo-->>Svc: persisted User
+
+    Note over Svc,TLSvc: Spring ApplicationEventPublisher<br/>dispatches UserRegisteredEvent
+
+    Svc-)TLSvc: @EventListener UserRegisteredEvent
+    TLSvc->>TLRepo: save(TaskList.createInbox(userId))
+    TLRepo-->>TLSvc: persisted Inbox list
+
+    Svc->>JWT: generateAccessToken(user)
+    JWT-->>Svc: accessToken (15 min)
+    Svc->>JWT: generateRefreshToken(user)
+    JWT-->>Svc: refreshToken (7 day)
+
+    Svc-->>Ctrl: AuthResponse
+    Ctrl-->>SPA: 201 Created {accessToken, refreshToken, expiresIn, tokenType}
+    SPA->>SPA: Store tokens in memory
+    SPA-->>User: Redirect to /today

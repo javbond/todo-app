@@ -1,0 +1,127 @@
+%% Clarity (todo-app) -- Task Aggregate Structure
+%% Shows the Task aggregate root with its value objects, commands, and events.
+
+classDiagram
+    class Task {
+        <<Aggregate Root>>
+        -UUID id
+        -String title
+        -String description
+        -Priority priority
+        -DueDate dueDate
+        -ReminderSettings reminderInterval
+        -boolean isCompleted
+        -boolean isDeleted
+        -boolean isToday
+        -LocalDateTime completedAt
+        -UUID listId
+        -UUID userId
+        -int sortOrder
+        -LocalDateTime createdAt
+        -LocalDateTime updatedAt
+        +create(String title, UUID listId, UUID userId)$ Task
+        +updateTitle(String title) void
+        +updateDescription(String desc) void
+        +changePriority(Priority priority) void
+        +assignDueDate(DueDate dueDate) void
+        +removeDueDate() void
+        +setReminderInterval(ReminderSettings interval) void
+        +complete() TaskCompletedEvent
+        +uncomplete() TaskUncompletedEvent
+        +softDelete() TaskDeletedEvent
+        +addToToday() TaskAddedToTodayEvent
+        +removeFromToday() void
+        +moveToList(UUID newListId) TaskMovedToListEvent
+        +isOverdue() boolean
+        +isDueToday() boolean
+    }
+
+    class Priority {
+        <<Value Object / Enum>>
+        P1_URGENT
+        P2_HIGH
+        P3_MEDIUM
+        P4_LOW
+        +label() String
+        +color() String
+        +sortOrder() int
+    }
+
+    class DueDate {
+        <<Value Object>>
+        -LocalDate value
+        +of(LocalDate date)$ DueDate
+        +isOverdue() boolean
+        +isToday() boolean
+        +isFuture() boolean
+        +value() LocalDate
+    }
+
+    class ReminderSettings {
+        <<Value Object / Enum>>
+        NONE
+        AT_DUE
+        FIFTEEN_MINUTES
+        THIRTY_MINUTES
+        ONE_HOUR
+        ONE_DAY
+        +getOffsetMinutes() int
+    }
+
+    class TaskCreatedEvent {
+        <<Domain Event>>
+        +UUID taskId
+        +UUID userId
+        +String title
+        +UUID listId
+        +Instant timestamp
+    }
+
+    class TaskCompletedEvent {
+        <<Domain Event>>
+        +UUID taskId
+        +UUID userId
+        +Instant completedAt
+    }
+
+    class TaskUncompletedEvent {
+        <<Domain Event>>
+        +UUID taskId
+        +UUID userId
+        +Instant timestamp
+    }
+
+    class TaskDeletedEvent {
+        <<Domain Event>>
+        +UUID taskId
+        +UUID userId
+        +Instant timestamp
+    }
+
+    class TaskMovedToListEvent {
+        <<Domain Event>>
+        +UUID taskId
+        +UUID oldListId
+        +UUID newListId
+        +UUID userId
+        +Instant timestamp
+    }
+
+    class TaskAddedToTodayEvent {
+        <<Domain Event>>
+        +UUID taskId
+        +UUID userId
+        +Instant timestamp
+    }
+
+    Task --> Priority : has
+    Task --> DueDate : has (optional)
+    Task --> ReminderSettings : has
+    Task ..> TaskCreatedEvent : emits
+    Task ..> TaskCompletedEvent : emits
+    Task ..> TaskUncompletedEvent : emits
+    Task ..> TaskDeletedEvent : emits
+    Task ..> TaskMovedToListEvent : emits
+    Task ..> TaskAddedToTodayEvent : emits
+
+    note for Task "Invariants:\n- Title: 1-255 chars, not blank\n- Description: max 2000 chars\n- Deleted tasks cannot be modified\n- Completed tasks cannot be modified\n- Must belong to exactly one list\n- Must belong to exactly one user\n- Priority defaults to P4"

@@ -1,0 +1,64 @@
+%% Clarity (todo-app) -- Deployment Architecture Diagram
+%% Shows both development and production deployment topologies
+
+graph TD
+    subgraph DevEnv["DEVELOPMENT ENVIRONMENT"]
+        direction TB
+
+        DevBrowser["Developer Browser<br/>localhost:4200"]
+
+        subgraph DevNative["Native Processes (Host Machine)"]
+            AngularDev["Angular Dev Server<br/>(ng serve)<br/>Port 4200<br/>Hot Reload"]
+            SpringDev["Spring Boot<br/>(mvn spring-boot:run)<br/>Port 8080<br/>Profile: dev"]
+        end
+
+        subgraph DevDocker["Docker Compose (docker-compose.yml)"]
+            DevPG[("PostgreSQL 15<br/>Port 5432<br/>DB: clarity_dev<br/>Volume: ./data/postgres")]
+            DevRedis[("Redis 7<br/>Port 6379")]
+        end
+
+        DevBrowser -->|"http://localhost:4200"| AngularDev
+        AngularDev -->|"proxy.conf.json<br/>/api/* -> :8080"| SpringDev
+        SpringDev -->|"JDBC"| DevPG
+        SpringDev -->|"Lettuce"| DevRedis
+    end
+
+    subgraph ProdEnv["PRODUCTION ENVIRONMENT (Single VM)"]
+        direction TB
+
+        ProdUser["Users<br/>(Public Internet)"]
+
+        subgraph ProdDocker["Docker Compose (docker-compose.prod.yml)"]
+            ProdNginx["Nginx Container<br/>Port 80/443 (host-mapped)<br/>- TLS termination<br/>- Serves Angular SPA<br/>- Proxies /api/* to backend"]
+            ProdBackend["Spring Boot Container<br/>Port 8080 (internal)<br/>Profile: prod<br/>Image: clarity-backend<br/>(Multi-stage build:<br/>eclipse-temurin:17-jre-alpine)"]
+            ProdPG[("PostgreSQL 15<br/>Port 5432 (internal)<br/>Volume: postgres_data<br/>(persistent)")]
+            ProdRedis[("Redis 7<br/>Port 6379 (internal)<br/>Volume: redis_data<br/>(persistent)")]
+        end
+
+        ProdUser -->|"HTTPS (443)"| ProdNginx
+        ProdNginx -->|"proxy_pass<br/>http://backend:8080"| ProdBackend
+        ProdBackend -->|"JDBC"| ProdPG
+        ProdBackend -->|"Lettuce"| ProdRedis
+    end
+
+    subgraph CI["GitHub Actions CI/CD"]
+        direction LR
+        Push["Push to<br/>main/develop"]
+        Build["Build + Test<br/>(Maven, ng build)"]
+        Security["Security Scan<br/>(OWASP, Secrets)"]
+        Coverage["Coverage Check<br/>(JaCoCo >= 80%<br/>Istanbul >= 70%)"]
+
+        Push --> Build
+        Build --> Security
+        Security --> Coverage
+    end
+
+    style DevEnv fill:#E3F2FD,stroke:#1565C0,color:#000
+    style ProdEnv fill:#E8F5E9,stroke:#2E7D32,color:#000
+    style CI fill:#FFF3E0,stroke:#E65100,color:#000
+    style DevPG fill:#F3E5F5,stroke:#6A1B9A,color:#000
+    style DevRedis fill:#FCE4EC,stroke:#B71C1C,color:#000
+    style ProdPG fill:#F3E5F5,stroke:#6A1B9A,color:#000
+    style ProdRedis fill:#FCE4EC,stroke:#B71C1C,color:#000
+    style ProdNginx fill:#FFF9C4,stroke:#F9A825,color:#000
+    style ProdBackend fill:#C8E6C9,stroke:#2E7D32,color:#000

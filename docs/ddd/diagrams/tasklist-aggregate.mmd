@@ -1,0 +1,66 @@
+%% Clarity (todo-app) -- TaskList Aggregate Structure
+%% Shows the TaskList aggregate root with its value object, commands, and events.
+
+classDiagram
+    class TaskList {
+        <<Aggregate Root>>
+        -UUID id
+        -String name
+        -ListColor color
+        -int sortOrder
+        -boolean isDefault
+        -UUID userId
+        -LocalDateTime createdAt
+        -LocalDateTime updatedAt
+        +create(String name, ListColor color, UUID userId)$ TaskList
+        +createInbox(UUID userId)$ TaskList
+        +rename(String name) void
+        +changeColor(ListColor color) void
+        +updateSortOrder(int order) void
+        +delete() TaskListDeletedEvent
+        +isInbox() boolean
+    }
+
+    class ListColor {
+        <<Value Object / Enum>>
+        RED
+        ORANGE
+        YELLOW
+        GREEN
+        BLUE
+        PURPLE
+        PINK
+        GRAY
+        +hexCode() String
+    }
+
+    class TaskListCreatedEvent {
+        <<Domain Event>>
+        +UUID listId
+        +UUID userId
+        +String name
+        +Instant timestamp
+    }
+
+    class TaskListDeletedEvent {
+        <<Domain Event>>
+        +UUID listId
+        +UUID userId
+        +int tasksReassignedToInboxCount
+        +Instant timestamp
+    }
+
+    class TaskListDeletionService {
+        <<Domain Service>>
+        +deleteListAndReassignTasks(TaskList list, TaskList inbox, TaskRepository taskRepo) int
+    }
+
+    TaskList --> ListColor : has
+    TaskList ..> TaskListCreatedEvent : emits
+    TaskList ..> TaskListDeletedEvent : emits
+    TaskListDeletionService --> TaskList : operates on
+    TaskListDeletionService ..> TaskListDeletedEvent : triggers
+
+    note for TaskList "Invariants:\n- Name: 1-50 chars, not blank\n- Inbox cannot be deleted\n- Inbox cannot be renamed\n- One Inbox per user\n- Name unique per user\n- Color must be a preset value\n- Must belong to one user"
+
+    note for ListColor "Color Hex Codes:\n- RED: #EF4444\n- ORANGE: #F97316\n- YELLOW: #EAB308\n- GREEN: #22C55E\n- BLUE: #3B82F6\n- PURPLE: #8B5CF6\n- PINK: #EC4899\n- GRAY: #6B7280"

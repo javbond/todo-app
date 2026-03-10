@@ -1,0 +1,93 @@
+%% Clarity (todo-app) -- Component Architecture Diagram
+%% Shows internal component structure of both frontend and backend
+
+graph LR
+    subgraph Browser["Angular 17+ SPA"]
+        direction TB
+
+        subgraph Features["Feature Modules (Lazy Loaded)"]
+            AuthFM["Auth Feature<br/>(Login, Register,<br/>Forgot Password)"]
+            TaskFM["Task Feature<br/>(List View, Detail Panel,<br/>Task Creation)"]
+            TodayFM["Today View Feature<br/>(Today, Overdue,<br/>Done Today, Progress)"]
+            ListFM["Task List Feature<br/>(Sidebar, List Form,<br/>Color Picker)"]
+        end
+
+        subgraph State["NgRx Store"]
+            AuthState["Auth State"]
+            TaskState["Task State"]
+            ListState["List State"]
+        end
+
+        subgraph CoreSvc["Core Services"]
+            AuthSvc["AuthService"]
+            TaskSvc["TaskService"]
+            ListSvc["ListService"]
+            NotifSvc["NotificationService"]
+            Interceptor["JWT Interceptor"]
+            Guard["Auth Guard"]
+            ErrorInt["Error Interceptor"]
+        end
+
+        Features --> State
+        State --> CoreSvc
+    end
+
+    subgraph Backend["Spring Boot 3.x (Modular Monolith)"]
+        direction TB
+
+        subgraph API["API Layer"]
+            AuthCtrl["AuthController<br/>/api/v1/auth/**"]
+            TaskCtrl["TaskController<br/>/api/v1/tasks/**"]
+            ListCtrl["TaskListController<br/>/api/v1/lists/**"]
+            ExHandler["GlobalExceptionHandler<br/>(@ControllerAdvice)"]
+        end
+
+        subgraph App["Application Layer"]
+            AuthAppSvc["AuthApplicationService"]
+            TaskAppSvc["TaskApplicationService"]
+            ListAppSvc["TaskListApplicationService"]
+            Mappers["MapStruct Mappers"]
+        end
+
+        subgraph Domain["Domain Layer (Zero External Imports)"]
+            TaskAgg["Task<br/>(Aggregate Root)"]
+            ListAgg["TaskList<br/>(Aggregate Root)"]
+            UserEnt["User<br/>(Entity)"]
+            PriorityVO["Priority<br/>(Value Object)"]
+            DueDateVO["DueDate<br/>(Value Object)"]
+            TaskRepo["TaskRepository<br/>(Port)"]
+            ListRepo["TaskListRepository<br/>(Port)"]
+            UserRepo["UserRepository<br/>(Port)"]
+            Events["Domain Events<br/>(TaskCreated, TaskCompleted,<br/>UserRegistered)"]
+        end
+
+        subgraph Infra["Infrastructure Layer"]
+            JpaTask["JpaTaskRepository<br/>(Adapter)"]
+            JpaList["JpaTaskListRepository<br/>(Adapter)"]
+            JpaUser["JpaUserRepository<br/>(Adapter)"]
+            JWT["JwtTokenProvider"]
+            SecConfig["SecurityConfig"]
+            CacheMgr["RedisCacheManager"]
+            TokenStore["RedisTokenBlacklistService"]
+            Flyway["Flyway Migrations"]
+        end
+
+        API --> App
+        App --> Domain
+        Infra --> Domain
+    end
+
+    subgraph DataStores["Data Stores"]
+        PG[("PostgreSQL 15+<br/>users, tasks,<br/>task_lists,<br/>refresh_tokens")]
+        RD[("Redis 7+<br/>cache:tasks:*<br/>cache:today:*<br/>token:blacklist:*")]
+    end
+
+    CoreSvc -->|"HTTPS<br/>REST API"| API
+    Infra -->|"JDBC<br/>(HikariCP)"| PG
+    Infra -->|"Lettuce"| RD
+
+    style Browser fill:#E3F2FD,stroke:#1565C0,color:#000
+    style Backend fill:#E8F5E9,stroke:#2E7D32,color:#000
+    style Domain fill:#FFF9C4,stroke:#F9A825,color:#000
+    style PG fill:#F3E5F5,stroke:#6A1B9A,color:#000
+    style RD fill:#FCE4EC,stroke:#B71C1C,color:#000

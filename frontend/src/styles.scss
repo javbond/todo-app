@@ -1,0 +1,63 @@
+/* CSS Reset + Global Variables */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Brand */
+  --color-brand: #3B82F6;
+  --color-brand-dark: #2563EB;
+
+  /* Backgrounds */
+  --color-bg: #F9FAFB;
+  --color-surface: #FFFFFF;
+  --color-sidebar-bg: #FFFFFF;
+
+  /* Borders */
+  --color-border: #E5E7EB;
+
+  /* Text */
+  --color-text-primary: #111827;
+  --color-text-secondary: #6B7280;
+
+  /* Interactive */
+  --color-hover: #F3F4F6;
+  --color-active: #EFF6FF;
+
+  /* Priority colors */
+  --color-priority-p1: #EF4444;
+  --color-priority-p2: #F97316;
+  --color-priority-p3: #3B82F6;
+  --color-priority-p4: #9CA3AF;
+
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-size-base: 14px;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}

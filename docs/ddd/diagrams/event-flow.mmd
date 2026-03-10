@@ -1,0 +1,84 @@
+%% Clarity (todo-app) -- Domain Event Flow
+%% Shows how domain events flow between bounded contexts and services.
+
+sequenceDiagram
+    participant User as User (Browser)
+    participant AuthCtrl as AuthController
+    participant AuthSvc as AuthApplicationService
+    participant UserAgg as User Aggregate
+    participant EventBus as ApplicationEventPublisher
+    participant ListSvc as TaskListApplicationService
+    participant ListAgg as TaskList Aggregate
+    participant TaskCtrl as TaskController
+    participant TaskSvc as TaskApplicationService
+    participant TaskAgg as Task Aggregate
+    participant NotifSvc as NotificationService (ACL)
+    participant BrowserAPI as Browser Notification API
+
+    Note over AuthCtrl, ListAgg: REGISTRATION FLOW (Cross-Context Event)
+
+    User->>AuthCtrl: POST /api/v1/auth/register
+    AuthCtrl->>AuthSvc: register(email, password, displayName)
+    AuthSvc->>UserAgg: User.register(email, hash, name)
+    AuthSvc->>EventBus: publish(UserRegisteredEvent)
+    EventBus->>ListSvc: @EventListener onUserRegistered()
+    ListSvc->>ListAgg: TaskList.createInbox(userId)
+    ListSvc->>EventBus: publish(TaskListCreatedEvent)
+    AuthSvc-->>AuthCtrl: AuthResponse (tokens)
+    AuthCtrl-->>User: 201 Created
+
+    Note over AuthCtrl, TaskAgg: LOGIN LOCKOUT FLOW
+
+    User->>AuthCtrl: POST /api/v1/auth/login (5th failed attempt)
+    AuthCtrl->>AuthSvc: login(email, wrongPassword)
+    AuthSvc->>UserAgg: user.recordFailedLogin()
+    UserAgg->>UserAgg: failedAttempts >= 5
+    AuthSvc->>UserAgg: user.lockAccount()
+    AuthSvc->>EventBus: publish(UserLockedOutEvent)
+    AuthSvc-->>AuthCtrl: AccountLockedException
+    AuthCtrl-->>User: 423 Account Locked
+
+    Note over TaskCtrl, EventBus: TASK LIFECYCLE EVENTS
+
+    User->>TaskCtrl: POST /api/v1/tasks
+    TaskCtrl->>TaskSvc: createTask(command)
+    TaskSvc->>TaskAgg: Task.create(title, listId, userId)
+    TaskSvc->>EventBus: publish(TaskCreatedEvent)
+    TaskSvc-->>TaskCtrl: TaskResponse
+    TaskCtrl-->>User: 201 Created
+
+    User->>TaskCtrl: PATCH /api/v1/tasks/{id}/complete
+    TaskCtrl->>TaskSvc: completeTask(taskId, userId)
+    TaskSvc->>TaskAgg: task.complete()
+    TaskSvc->>EventBus: publish(TaskCompletedEvent)
+    TaskSvc-->>TaskCtrl: TaskResponse
+    TaskCtrl-->>User: 200 OK
+
+    User->>TaskCtrl: PATCH /api/v1/tasks/{id}/uncomplete
+    TaskCtrl->>TaskSvc: uncompleteTask(taskId, userId)
+    TaskSvc->>TaskAgg: task.uncomplete()
+    TaskSvc->>EventBus: publish(TaskUncompletedEvent)
+    TaskSvc-->>TaskCtrl: TaskResponse
+    TaskCtrl-->>User: 200 OK
+
+    User->>TaskCtrl: DELETE /api/v1/tasks/{id}
+    TaskCtrl->>TaskSvc: deleteTask(taskId, userId)
+    TaskSvc->>TaskAgg: task.softDelete()
+    TaskSvc->>EventBus: publish(TaskDeletedEvent)
+    TaskCtrl-->>User: 204 No Content
+
+    Note over TaskCtrl, EventBus: LIST DELETION (Cross-Aggregate)
+
+    User->>TaskCtrl: DELETE /api/v1/lists/{id}
+    TaskCtrl->>ListSvc: deleteList(listId, userId)
+    ListSvc->>ListSvc: reassignTasksToInbox()
+    ListSvc->>ListAgg: list.delete()
+    ListSvc->>EventBus: publish(TaskListDeletedEvent)
+    TaskCtrl-->>User: 204 No Content
+
+    Note over User, BrowserAPI: REMINDER NOTIFICATION (ACL - Client Side)
+
+    User->>NotifSvc: App polls tasks with reminders
+    NotifSvc->>NotifSvc: Check due dates vs current time
+    NotifSvc->>BrowserAPI: new Notification(title, options)
+    BrowserAPI-->>User: Browser notification displayed
