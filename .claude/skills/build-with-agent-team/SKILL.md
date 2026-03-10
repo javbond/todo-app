@@ -390,6 +390,63 @@ The sprint build is complete when:
 
 ---
 
+
+## Multi-Stack Agent Teams
+
+### Additional Workspace Agents
+Read `.claude/rules/06-tech-stack-context.md` and `.sdlc/state.json → techStack.additional`.
+
+When the project has additional workspaces, the agent team MAY need extra agents:
+
+| Workspace Technology | Agent to Spawn | Model | Owns |
+|---------------------|---------------|-------|------|
+| Go | general-purpose (with Go context) | Sonnet | `workspaces/<go-dir>/` |
+| Rust | general-purpose (with Rust context) | Sonnet | `workspaces/<rust-dir>/` |
+| Python | general-purpose (with Python context) | Sonnet | `workspaces/<python-dir>/` |
+| Other | general-purpose | Sonnet | `workspaces/<dir>/` |
+
+### Spawn Prompt for Additional Workspace Agent
+```
+You are the [Technology] Developer agent for Sprint N.
+
+## Your Ownership
+- You own: `[workspace-directory]/`
+- Do NOT touch: `backend/`, `frontend/`, other workspaces, `docs/`, contracts
+
+## Reference Documentation
+READ FIRST: `[referenceDoc path from state.json]`
+This contains architecture patterns, coding conventions, and implementation guidance for this workspace.
+
+## Tech Stack Context
+READ: `.claude/rules/06-tech-stack-context.md` for full project context.
+Your workspace: [technology] [version] in [directory]
+Build: [buildCmd]
+Test: [testCmd]
+
+## Shared Contracts
+Check `docs/tech-specs/shared-schemas/` for cross-workspace contracts.
+Your workspace communicates with other workspaces via: [gRPC / REST / Kafka — from HLD]
+
+## STOP Rules
+- HALT if you need to modify shared contracts
+- HALT if you need to access another workspace's code directly
+- HALT if integration patterns are unclear — message the lead
+
+## Before Reporting Done
+1. Build passes: `[buildCmd]`
+2. Tests pass: `[testCmd]`
+3. Shared contract compliance verified
+```
+
+### Team Size with Additional Workspaces
+| Sprint Scope | Base Team | + Additional Workspace Agents |
+|-------------|-----------|------------------------------|
+| Primary stacks only | 3-5 (Backend + Frontend + QA + ...) | 0 |
+| Primary + 1 workspace | 3-5 | +1 workspace agent |
+| Primary + N workspaces | 3-5 | +N workspace agents (if sprint touches them) |
+
+Only spawn workspace agents for workspaces that are AFFECTED by the current sprint's stories.
+
 ## Execute
 
 Now read the sprint plan/story and begin:

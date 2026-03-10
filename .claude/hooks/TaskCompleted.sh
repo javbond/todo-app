@@ -88,6 +88,30 @@ case "$AGENT_NAME" in
     echo "[SDLC] Code review completed"
     ;;
 
+  *devops*)
+    echo "[SDLC] Running devops sync verification..."
+
+    # Check if local main is in sync with remote
+    cd "$PROJECT_ROOT"
+    git fetch origin 2>/dev/null
+    LOCAL_MAIN=$(git rev-parse main 2>/dev/null || echo "none")
+    REMOTE_MAIN=$(git rev-parse origin/main 2>/dev/null || echo "none")
+    if [ "$LOCAL_MAIN" != "$REMOTE_MAIN" ] && [ "$LOCAL_MAIN" != "none" ]; then
+      echo "[SDLC] WARN: Local main is not in sync with origin/main after devops task"
+      echo "[SDLC]   Local:  $LOCAL_MAIN"
+      echo "[SDLC]   Remote: $REMOTE_MAIN"
+    else
+      echo "[SDLC] ✓ Local main is in sync with remote"
+    fi
+
+    # Check for stale local feature branches that have been merged
+    STALE_BRANCHES=$(git branch --merged main 2>/dev/null | grep -E '^\s*(feature|bugfix)/' || true)
+    if [ -n "$STALE_BRANCHES" ]; then
+      echo "[SDLC] WARN: Stale merged branches detected (consider cleanup):"
+      echo "$STALE_BRANCHES"
+    fi
+    ;;
+
   *)
     echo "[SDLC] Task completed by $AGENT_NAME"
     ;;

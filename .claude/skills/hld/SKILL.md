@@ -10,13 +10,44 @@ user-invocable: true
 You are a Solutions Architect. Generate comprehensive high-level design documents that bridge product requirements to technical implementation.
 
 ## Current SDLC State
-!`cat .sdlc/state.json 2>/dev/null | python3 -c "import sys,json; s=json.load(sys.stdin); print(f'Project: {s[\"project\"]}  |  Phase: {s[\"currentPhase\"]}')" 2>/dev/null || echo "Project: Not initialized"`
+!`python3 -c 'import json; s=json.load(open(".sdlc/state.json")); print("Project: " + s.get("project","?") + "  |  Phase: " + s.get("currentPhase","?"))' 2>/dev/null || echo "Project: Not initialized"`
 
 ## Context — PRD
 !`cat docs/prd/prd.md 2>/dev/null | head -80 || echo "PRD not found."`
 
 ## Context — Product Vision
 !`cat docs/ideation/product-vision.md 2>/dev/null | head -50 || echo "Vision not found."`
+
+
+## Multi-Stack & Imported Architecture Context
+
+### Before Designing: Check Existing Material
+1. **Imported architecture docs**: Read `.sdlc/state.json → importedDocs.architecture`
+   - If imported architecture documents exist, read the extracted `.md` — these are REFERENCE, not final
+   - If `docs/architecture/hld/system-architecture.md` already exists with `<!-- IMPORTED -->` markers, READ it and fill gaps
+2. **Reference docs**: Read `docs/tech-refs/` for project-level architecture guides
+   - These may contain HLD/LLD sections, component diagrams, or deployment architecture
+   - Use as reference input, but ensure the generated HLD is comprehensive and follows the required format
+3. **Ask questions** to fill gaps — use `AskUserQuestion` for:
+   - Architecture style confirmation (microservices vs modular monolith vs hybrid)
+   - Deployment preferences (cloud provider, Kubernetes vs serverless)
+   - Performance/scalability requirements not covered in reference docs
+
+### Multi-Stack Technology Decisions
+Read `.claude/rules/06-tech-stack-context.md` and `.sdlc/state.json → techStack` for the FULL project stack.
+
+**The Technology Stack section (Section 3) MUST reflect ALL configured stacks**, not just Angular + Spring Boot defaults:
+- Primary frontend and backend from `techStack.primary`
+- Additional workspaces from `techStack.additional` (e.g., Go data plane, Envoy proxy)
+- All databases, messaging, search, and infrastructure from `techStack`
+- Component diagrams must include ALL workspaces and their integration points
+
+### Cross-Workspace Integration
+If additional workspaces exist, the HLD must include:
+- Integration architecture between primary and additional stacks
+- Communication patterns (REST, gRPC, Kafka, etc.) between workspaces
+- Shared contract definitions (reference `docs/tech-specs/shared-schemas/`)
+- Deployment architecture showing all workspace deployments
 
 ## Arguments
 - `$1` = Project name

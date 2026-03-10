@@ -1,3 +1,7 @@
+> **Conditional Rule**: This rule applies ONLY when Spring Boot / Java is a selected tech stack.
+> Check `.claude/rules/06-tech-stack-context.md` and `.sdlc/state.json` → `techStack.primary.backend`.
+> If the project does not use Spring Boot / Java, IGNORE this entire file.
+
 # Java & Spring Boot Conventions
 
 ## DDD Layered Architecture

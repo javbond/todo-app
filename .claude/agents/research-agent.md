@@ -10,6 +10,12 @@ allowedTools:
   - WebFetch
   - AskUserQuestion
 ---
+## Tech Stack Context
+FIRST read `.claude/rules/06-tech-stack-context.md` for the FULL project tech stack configuration.
+Read `.sdlc/state.json` → `techStack` for machine-readable stack configuration.
+Check `.sdlc/state.json` → `importedDocs` for pre-existing project documents.
+Check importedDocs in state.json — skip research that's already covered by imported documents.
+Read `docs/tech-refs/` for existing project documentation before conducting new research.
 
 # Enterprise Research & Domain Intelligence Agent
 
@@ -23,7 +29,7 @@ You DO NOT design architecture.
 You DO NOT create implementation-level artifacts.
 
 ## Current SDLC State
-!`cat .sdlc/state.json 2>/dev/null | python3 -c "import sys,json; s=json.load(sys.stdin); print(f'Project: {s[\"project\"]}  |  Phase: {s[\"currentPhase\"]}')" 2>/dev/null || echo "Project: Not initialized"`
+!`python3 -c 'import json; s=json.load(open(".sdlc/state.json")); print("Project: " + s.get("project","?") + "  |  Phase: " + s.get("currentPhase","?"))' 2>/dev/null || echo "Project: Not initialized"`
 
 ---
 

@@ -90,17 +90,31 @@ Also list artifacts generated so far per phase.
 Advance to the next phase:
 
 1. Determine current phase from `state.json`
-2. Run quality gate check:
+2. **Check git working directory status** (warnings only — do not block):
+   ```bash
+   # Warn if uncommitted changes
+   if [ -n "$(git status --porcelain)" ]; then
+     echo "WARNING: Uncommitted changes detected. Recommend committing or stashing before advancing."
+   fi
+   # Warn if local main not in sync with remote
+   git fetch origin 2>/dev/null
+   LOCAL=$(git rev-parse main 2>/dev/null)
+   REMOTE=$(git rev-parse origin/main 2>/dev/null)
+   if [ "$LOCAL" != "$REMOTE" ] 2>/dev/null; then
+     echo "WARNING: Local main is not in sync with remote. Run: git checkout main && git pull origin main"
+   fi
+   ```
+3. Run quality gate check:
    ```bash
    bash scripts/sdlc-gate-check.sh [current_phase]
    ```
-3. If gate PASSES:
+4. If gate PASSES:
    - Update current phase status to `"completed"`, set `gatesPassed: true`, set `completedAt` to now
    - Set next phase status to `"in_progress"`
    - Update `currentPhase` to next phase name
    - Update `updatedAt`
    - Display success message with next steps and which skill to invoke
-4. If gate FAILS:
+5. If gate FAILS:
    - Display the failure reason from the gate check
    - List what artifacts/checks are missing
    - Suggest which skills to run to satisfy the gate
@@ -118,7 +132,7 @@ Phase-to-skill mapping for "Next Step" guidance:
 | development | `/scrum-sprint planning`, then `/develop [layer] [story]` |
 | testing | `/test-suite unit`, `/test-suite integration`, `/test-suite e2e` |
 | security | `/security-review`, `/compliance-checklist [industry]` |
-| code_review | `/pr-review create`, then `/pr-review review [pr-number]` |
+| code_review | `/pr-review create`, then `/pr-review review [pr-number]`, then `/pr-review merge [pr-number]` |
 | release | `/release notes`, `/release checklist`, `/release tag [version]` |
 
 ### `/sdlc gate [phase]`
@@ -154,6 +168,38 @@ Artifacts Generated: [count]
 Sprints Completed: [count]
 ```
 
+
+## Imported Documents Processing
+
+When `/sdlc init` runs on a project with imported documents (check `importedDocs` in `.sdlc/state.json`):
+
+### Step 1: Read & Analyze
+For each entry in `importedDocs` that is not null:
+- Read the extracted `.md` file path
+- Identify which SDLC phases/sections the content covers
+- Note the confidence level and any detected gaps
+
+### Step 2: Generate Standard Docs (Reference-Based)
+**CRITICAL: Imported documents are REFERENCE material, not comprehensive/final.**
+- Use imported content as a **starting point** to populate the kit's standard-format documents
+- Mark sections populated from imports with `<!-- IMPORTED: section populated from [source] -->`
+- Mark missing/incomplete sections with `<!-- TODO: [what's needed] -->`
+- For each generated doc, ask the user relevant questions to ensure completeness:
+  - Use `AskUserQuestion` to clarify gaps, confirm accuracy, and solicit missing details
+  - Never assume imported content is complete or correct — always validate with the user
+- Adhere strictly to the required format and sections for each document at each phase
+
+### Step 3: Gap Analysis & Phase Status
+- Check generated docs against quality gate criteria (see `.claude/rules/02-quality-gates.md`)
+- Phases with imported content are set to `in_progress` at most (never `completed` from imports alone)
+- Provide suggestions for what's missing and which skill to run next
+- The user must review and approve before any phase can advance
+
+### Phase Auto-Advance from Imports
+- Read `phases` in state.json for any phase with `source: "imported"` or `"imported_partial"`
+- Start the SDLC at the first phase that needs attention (gap-filling or next pending)
+- Skills like `/ideate`, `/enterprise-prd`, `/hld`, `/lld` will read existing generated docs and FILL GAPS rather than starting from scratch
+
 ## Important Rules
 - ALWAYS read `.sdlc/state.json` before any action
 - ALWAYS update `.sdlc/state.json` after state changes (use the Write tool)
@@ -182,6 +228,7 @@ The `/sdlc` skill absorbs the meta-orchestrator role from `sample-agents/meta-or
 | 4. Tech Specs | `/tech-specs` | architect-agent | Opus |
 | 5. Development | `/develop backend` | backend-agent | Sonnet |
 | 5. Development | `/develop frontend` | frontend-agent | Sonnet |
+| 5. Development | `/develop workspace <name>` | (dynamic per workspace) | Sonnet |
 | 6. Testing | `/test-suite` | qa-agent | Sonnet |
 | 7. Security | `/security-review` | security-agent | Opus |
 | 7. Governance | `/sdlc gate` | validator-agent | Opus |
@@ -189,6 +236,11 @@ The `/sdlc` skill absorbs the meta-orchestrator role from `sample-agents/meta-or
 | 8. Code Review | `/pr-review review` | review-agent + validator-agent | Opus |
 | 9. Release | `/release tag` | devops-agent | Haiku |
 | 9. Retro | `/scrum-sprint retro` | memory-agent | Haiku |
+
+### Multi-Stack Awareness
+Read `.claude/rules/06-tech-stack-context.md` for the full project tech stack.
+When the project has additional workspaces (check `state.json → techStack.additional`), all phase skills and agents must be aware of ALL stacks for integration points.
+Use workspace-specific build/test commands from `state.json → techStack`.
 
 ### Agent Teams Integration
 For parallel execution, use `/build-with-agent-team`:

@@ -10,7 +10,45 @@ user-invocable: true
 You are a Product Ideation Specialist. Your job is to research, analyze, and produce a comprehensive product vision document that will serve as the foundation for the entire SDLC.
 
 ## Current SDLC State
-!`cat .sdlc/state.json 2>/dev/null | python3 -c "import sys,json; s=json.load(sys.stdin); print(f'Project: {s[\"project\"]}  |  Phase: {s[\"currentPhase\"]}')" 2>/dev/null || echo "Project: Not initialized"`
+!`python3 -c 'import json; s=json.load(open(".sdlc/state.json")); print("Project: " + s.get("project","?") + "  |  Phase: " + s.get("currentPhase","?"))' 2>/dev/null || echo "Project: Not initialized"`
+
+
+## Imported Documents & Reference Material
+
+### Before Research: Check for Existing Content
+Before starting the ideation process from scratch, check:
+
+1. **Imported documents**: Read `.sdlc/state.json → importedDocs.ideation`
+   - If an imported ideation/vision document exists, READ the extracted `.md` file
+   - This document is **REFERENCE material only** — it is NOT comprehensive or final
+   
+2. **Reference docs**: Check `docs/tech-refs/` for project-level reference documents
+   - These may contain product vision, problem statements, or market context
+   - Use them as additional context, not as the definitive source
+
+3. **Previously generated doc**: Check if `docs/ideation/product-vision.md` already exists
+   - If it was generated from imports, it will have `<!-- IMPORTED -->` and `<!-- TODO -->` markers
+   - Your job is to FILL GAPS and ensure completeness, not start over
+
+### Reference-First Approach
+When imported/reference material exists:
+1. **Read** the existing content thoroughly
+2. **Identify gaps** — what sections are missing, incomplete, or need validation?
+3. **Ask questions** — use `AskUserQuestion` to:
+   - Confirm accuracy of imported information
+   - Fill missing sections (e.g., if no success criteria, ask about KPIs)
+   - Validate assumptions (e.g., target audience, competitive landscape)
+   - Gather additional context not in the document
+4. **Generate** the complete product-vision.md incorporating:
+   - Validated imported content
+   - User's answers to gap-filling questions
+   - Web research results for market/competitive analysis
+5. **Ensure format compliance** — the output MUST follow the standard format with ALL required sections:
+   - Vision Statement, Problem Statement (3-5 problems), Target Audience, Value Proposition,
+     Key Features, Market Analysis, Technology Considerations, Success Criteria, Risks & Assumptions, Next Steps
+
+### When NO imported documents exist
+Follow the standard Step 1-4 flow below (full research + interactive discovery).
 
 ## Arguments
 - `$1` = Project name
@@ -163,6 +201,10 @@ Use the Task tool to spawn a research-agent subagent:
 - Provide: project name, domain, any references
 - Agent produces: docs/ideation/product-vision.md
 ```
+
+### Multi-Stack Awareness
+Read `.claude/rules/06-tech-stack-context.md` for the full project tech stack.
+The Research Agent should be aware of all configured tech stacks when discussing technology considerations.
 
 ### Agent produces:
 - `docs/ideation/product-vision.md` — Informed by user's answers + web research

@@ -1,3 +1,7 @@
+> **Multi-Stack Note**: File naming and code organization conventions below are the defaults for Angular + Spring Boot + DDD.
+> For the FULL project tech stack, see `.claude/rules/06-tech-stack-context.md`.
+> Additional workspaces may follow different conventions per their reference docs in `docs/tech-refs/`.
+
 # General Standards
 
 ## File Naming
@@ -12,9 +16,9 @@
 - Group by bounded context, not by technical layer
 - Keep methods under 30 lines; extract when larger
 
-## Git Workflow
-- Branch from `develop`, merge back via PR
-- Branch naming: `feature/US-XXX-short-desc`, `bugfix/BUG-XXX-short-desc`, `hotfix/critical-desc`
+## Git Workflow (GitHub Flow)
+- Branch from `main`, merge back via PR
+- Branch naming: `feature/US-XXX-short-desc`, `bugfix/BUG-XXX-short-desc`
 - Commit messages: `type(scope): description` (conventional commits)
   - `feat(user)`: new feature
   - `fix(auth)`: bug fix
@@ -23,7 +27,23 @@
   - `refactor(order)`: code refactoring
   - `chore(deps)`: maintenance
 - PR title matches the primary user story: `[US-XXX] Short description`
-- Squash merge to develop, merge commit to main
+- Squash merge to main
+
+### Branch Sync Requirements
+- **Pre-development**: Always `git fetch origin && git pull origin main` before creating a feature branch
+- **Post-merge**: After every PR merge, sync local main: `git checkout main && git pull origin main`
+- **Post-release**: After tagging, push tag to remote. No release branches needed.
+- **Clean working directory**: Verify `git status --porcelain` is empty before phase transitions
+
+### Post-Merge Workflow
+After a PR is squash-merged to main:
+1. Sync local main: `git checkout main && git pull origin main`
+2. Delete local feature branch: `git branch -d feature/US-XXX-short-desc`
+3. Verify sync: confirm local and remote main SHAs match
+
+### Branch Cleanup
+- Feature branches: deleted (local + remote) after PR merge
+- Never leave stale branches — clean up within same session as merge
 
 ## Documentation Requirements Per Phase
 | Phase | Required Artifacts |

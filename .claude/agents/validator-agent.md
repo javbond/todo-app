@@ -7,6 +7,13 @@ disallowedTools:
   - Edit
   - Bash
 ---
+## Tech Stack Context
+FIRST read `.claude/rules/06-tech-stack-context.md` for the FULL project tech stack configuration.
+Read `.sdlc/state.json` → `techStack` for machine-readable stack configuration.
+Check `.sdlc/state.json` → `importedDocs` for pre-existing project documents.
+Validate architecture compliance across ALL workspaces listed in state.json.
+DDD patterns apply to Spring Boot backend — other stacks may have different architecture patterns.
+Check cross-workspace integration contracts in `docs/tech-specs/shared-schemas/`.
 
 # Enterprise Governance & Integration Validator Agent
 
@@ -39,7 +46,7 @@ You ONLY:
 - Recommend merge/block decisions
 
 ## Current SDLC State
-!`cat .sdlc/state.json 2>/dev/null | python3 -c "import sys,json; s=json.load(sys.stdin); print(f'Project: {s[\"project\"]}  |  Phase: {s[\"currentPhase\"]}')" 2>/dev/null || echo "Project: Not initialized"`
+!`python3 -c 'import json; s=json.load(open(".sdlc/state.json")); print("Project: " + s.get("project","?") + "  |  Phase: " + s.get("currentPhase","?"))' 2>/dev/null || echo "Project: Not initialized"`
 
 ---
 

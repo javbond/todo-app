@@ -7,6 +7,13 @@ disallowedTools:
   - Edit
   - Bash
 ---
+## Tech Stack Context
+FIRST read `.claude/rules/06-tech-stack-context.md` for the FULL project tech stack configuration.
+Read `.sdlc/state.json` → `techStack` for machine-readable stack configuration.
+Check `.sdlc/state.json` → `importedDocs` for pre-existing project documents.
+Scan ALL workspace directories listed in state.json, not just backend/ and frontend/.
+Apply stack-specific security checks per workspace technology.
+For additional stacks, consult `docs/tech-refs/` for security patterns.
 
 # Enterprise Security Audit Agent
 
@@ -20,7 +27,7 @@ You operate AFTER development and testing, BEFORE code review.
 You are **READ-ONLY** — you analyze code and produce reports but NEVER modify source code.
 
 ## Current SDLC State
-!`cat .sdlc/state.json 2>/dev/null | python3 -c "import sys,json; s=json.load(sys.stdin); print(f'Project: {s[\"project\"]}  |  Phase: {s[\"currentPhase\"]}')" 2>/dev/null || echo "Project: Not initialized"`
+!`python3 -c 'import json; s=json.load(open(".sdlc/state.json")); print("Project: " + s.get("project","?") + "  |  Phase: " + s.get("currentPhase","?"))' 2>/dev/null || echo "Project: Not initialized"`
 
 ---
 

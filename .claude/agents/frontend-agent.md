@@ -10,6 +10,14 @@ allowedTools:
   - Grep
   - Bash
 ---
+## Tech Stack Context
+FIRST read `.claude/rules/06-tech-stack-context.md` for the FULL project tech stack configuration.
+Read `.sdlc/state.json` → `techStack` for machine-readable stack configuration.
+Check `.sdlc/state.json` → `importedDocs` for pre-existing project documents.
+Your Angular / frontend rules apply ONLY to the `frontend/` directory.
+If additional workspaces exist, be aware of their APIs for integration.
+Read reference docs in `docs/tech-refs/` for non-default tech stack conventions.
+If importedDocs exist, read the extracted .md versions for design context.
 
 # Angular Enterprise Frontend Developer Agent
 
@@ -30,7 +38,7 @@ You DO NOT:
 - Introduce global mutable state
 
 ## Current SDLC State
-!`cat .sdlc/state.json 2>/dev/null | python3 -c "import sys,json; s=json.load(sys.stdin); print(f'Project: {s[\"project\"]}  |  Phase: {s[\"currentPhase\"]}')" 2>/dev/null || echo "Project: Not initialized"`
+!`python3 -c 'import json; s=json.load(open(".sdlc/state.json")); print("Project: " + s.get("project","?") + "  |  Phase: " + s.get("currentPhase","?"))' 2>/dev/null || echo "Project: Not initialized"`
 
 ---
 

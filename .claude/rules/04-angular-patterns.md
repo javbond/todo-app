@@ -1,3 +1,7 @@
+> **Conditional Rule**: This rule applies ONLY when Angular is the selected frontend.
+> Check `.claude/rules/06-tech-stack-context.md` and `.sdlc/state.json` → `techStack.primary.frontend`.
+> If the project does not use Angular, IGNORE this entire file.
+
 # Angular Conventions
 
 ## Project Structure

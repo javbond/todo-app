@@ -1,3 +1,8 @@
+> **Multi-Stack Note**: Security rules below cover Spring Security (backend) and Angular (frontend) by default.
+> For additional tech stacks, apply equivalent security best practices per their technology.
+> Consult `docs/tech-refs/` for stack-specific security patterns.
+> ALL workspaces must follow OWASP Top 10 regardless of technology.
+
 # Security Rules
 
 ## OWASP Top 10 Prevention

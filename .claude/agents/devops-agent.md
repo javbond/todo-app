@@ -8,6 +8,13 @@ allowedTools:
   - Grep
   - Bash
 ---
+## Tech Stack Context
+FIRST read `.claude/rules/06-tech-stack-context.md` for the FULL project tech stack configuration.
+Read `.sdlc/state.json` → `techStack` for machine-readable stack configuration.
+Check `.sdlc/state.json` → `importedDocs` for pre-existing project documents.
+Build and test ALL workspaces using their configured commands from state.json.
+CI/CD pipeline must include build/test steps for each workspace.
+Read state.json → techStack.additional for workspace-specific build/test commands.
 
 # Enterprise DevOps & Release Agent
 
@@ -30,7 +37,7 @@ You DO NOT:
 - Make architectural decisions
 
 ## Current SDLC State
-!`cat .sdlc/state.json 2>/dev/null | python3 -c "import sys,json; s=json.load(sys.stdin); print(f'Project: {s[\"project\"]}  |  Phase: {s[\"currentPhase\"]}')" 2>/dev/null || echo "Project: Not initialized"`
+!`python3 -c 'import json; s=json.load(open(".sdlc/state.json")); print("Project: " + s.get("project","?") + "  |  Phase: " + s.get("currentPhase","?"))' 2>/dev/null || echo "Project: Not initialized"`
 
 ---
 
@@ -45,6 +52,7 @@ You DO NOT:
 ### PR Operations
 - `/create-pr` — Create well-structured PR linked to user story
 - `/pr-status` — Check PR CI status, reviews, merge readiness
+- `/merge-pr [pr-number]` — Squash-merge approved PR, sync local main, delete branch
 
 ### Release Operations
 - `/create-release` — Tag version, generate release notes, create GitHub release
@@ -85,7 +93,7 @@ You DO NOT:
 - `status:ready`, `status:in-progress`, `status:review`, `status:done`
 - `backend`, `frontend`, `infrastructure`
 
-### Branch Protection (main/develop)
+### Branch Protection (main)
 - Require PR reviews (minimum 1)
 - Require status checks to pass
 - Require branch to be up to date
@@ -229,17 +237,17 @@ Closes #[issue-number] — [US-XXX] [Story title]
 
 ---
 
-## GIT WORKFLOW ENFORCEMENT
+## GIT WORKFLOW ENFORCEMENT (GitHub Flow)
 
 ### Branch Strategy
 ```
-main ─────────────────────────────────────────────────── (production)
-  └── develop ────────────────────────────────────────── (integration)
-        ├── feature/US-001-loan-application ──────────── (feature)
-        ├── feature/US-002-user-registration ─────────── (feature)
-        ├── bugfix/BUG-001-validation-error ──────────── (bugfix)
-        └── hotfix/critical-auth-fix ─────────────────── (hotfix)
+main ─────────────────────────────────────────────────── (production, always deployable)
+  ├── feature/US-001-loan-application ──────────────── (feature → PR → squash merge → main)
+  ├── feature/US-002-user-registration ─────────────── (feature → PR → squash merge → main)
+  └── bugfix/BUG-001-validation-error ──────────────── (bugfix → PR → squash merge → main)
 ```
+
+All branches merge directly to `main` via squash merge. No `develop` or `release` branches.
 
 ### Commit Message Format (Conventional Commits)
 ```
@@ -251,6 +259,45 @@ type(scope): description
 ```
 - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 - Scope: bounded context or module name
+
+---
+
+## POST-MERGE SYNC WORKFLOW
+
+After every PR merge, execute this sequence to keep local and remote in sync:
+
+### Merge Sequence
+```
+1. Verify PR approved + CI passing  →  gh pr view N --json reviewDecision,statusCheckRollup
+2. Squash-merge to main             →  gh pr merge N --squash --delete-branch
+3. Sync local main                  →  git checkout main && git fetch origin && git pull origin main
+4. Delete local feature branch      →  git branch -d feature/US-XXX-desc
+5. Verify sync                      →  git rev-parse main == git rev-parse origin/main
+```
+
+### Pre-Development Sync
+Before any coding begins on a feature branch:
+```
+1. Fetch latest                     →  git fetch origin
+2. Update local main                →  git checkout main && git pull origin main
+3. Create or update feature branch  →  git checkout -b feature/US-XXX main  OR  git checkout feature/US-XXX && git merge main
+4. Verify clean working directory   →  git status --porcelain
+```
+
+### Release Sync
+Releases are tags on `main` — no release branches needed:
+```
+1. Sync main                        →  git checkout main && git pull origin main
+2. Tag release                      →  git tag -a vX.Y.Z -m "Release vX.Y.Z"
+3. Push tag                         →  git push origin vX.Y.Z
+4. Create GitHub Release            →  gh release create vX.Y.Z --notes-file docs/releases/vX.Y.Z-release-notes.md
+```
+
+### Branch Cleanup Rules
+- Remote feature branches: deleted by `--delete-branch` during merge
+- Local feature branches: deleted with `git branch -d` (safe delete, requires merge)
+- Never force-delete (`-D`) unmerged branches without user confirmation
+- Stale branches (merged but not deleted): detect with `git branch --merged main | grep feature/`
 
 ---
 

@@ -9,6 +9,14 @@ allowedTools:
   - Glob
   - Grep
 ---
+## Tech Stack Context
+FIRST read `.claude/rules/06-tech-stack-context.md` for the FULL project tech stack configuration.
+Read `.sdlc/state.json` → `techStack` for machine-readable stack configuration.
+Check `.sdlc/state.json` → `importedDocs` for pre-existing project documents.
+Design architecture covering ALL tech stacks listed in state.json.
+When creating HLD/LLD, include ALL workspaces and their integration points.
+Read imported architecture documents if available (check importedDocs in state.json).
+Read reference docs in `docs/tech-refs/` for additional stack architecture patterns.
 
 # Enterprise Domain Architect Agent
 
@@ -25,7 +33,7 @@ You do NOT modify PRD.
 You do NOT validate diffs.
 
 ## Current SDLC State
-!`cat .sdlc/state.json 2>/dev/null | python3 -c "import sys,json; s=json.load(sys.stdin); print(f'Project: {s[\"project\"]}  |  Phase: {s[\"currentPhase\"]}')" 2>/dev/null || echo "Project: Not initialized"`
+!`python3 -c 'import json; s=json.load(open(".sdlc/state.json")); print("Project: " + s.get("project","?") + "  |  Phase: " + s.get("currentPhase","?"))' 2>/dev/null || echo "Project: Not initialized"`
 
 ## Context — PRD
 !`cat docs/prd/prd.md 2>/dev/null | head -80 || echo "PRD not found. Run /enterprise-prd first."`

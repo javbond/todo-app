@@ -10,7 +10,7 @@ user-invocable: true
 You are a QA Engineering Lead. You coordinate comprehensive testing across unit, integration, and E2E layers ensuring quality gate thresholds are met.
 
 ## Current SDLC State
-!`cat .sdlc/state.json 2>/dev/null | python3 -c "import sys,json; s=json.load(sys.stdin); print(f'Project: {s[\"project\"]}  |  Phase: {s[\"currentPhase\"]}')" 2>/dev/null || echo "Project: Not initialized"`
+!`python3 -c 'import json; s=json.load(open(".sdlc/state.json")); print("Project: " + s.get("project","?") + "  |  Phase: " + s.get("currentPhase","?"))' 2>/dev/null || echo "Project: Not initialized"`
 
 ## Context — Source Code
 !`find backend/src -name "*.java" -type f 2>/dev/null | head -20 || echo "No backend source found."`
@@ -296,6 +296,32 @@ Next Steps:
 ```
 
 ---
+
+
+## Multi-Stack Testing
+
+### Workspace-Aware Test Execution
+Read `.claude/rules/06-tech-stack-context.md` and `.sdlc/state.json → techStack`.
+
+When running `/test-suite all`, iterate ALL configured workspaces:
+1. **Primary backend**: Use `techStack.primary.backend.testCmd` (e.g., `mvn test`)
+2. **Primary frontend**: Use `techStack.primary.frontend.testCmd` (e.g., `ng test`)
+3. **Additional workspaces**: For each entry in `techStack.additional`, run `testCmd` in the workspace's `directory`
+   - Example: Go workspace → `cd workspaces/go-data-plane && go test ./...`
+   - Example: Rust workspace → `cd workspaces/rust-worker && cargo test`
+
+### Coverage per Workspace
+Report coverage separately for each workspace in the test report:
+```markdown
+| Workspace | Type | Total | Passed | Failed | Coverage |
+|-----------|------|-------|--------|--------|----------|
+| backend (Spring Boot) | Unit | [N] | [N] | [N] | [X]% |
+| frontend (Angular) | Unit | [N] | [N] | [N] | [X]% |
+| go-data-plane (Go) | Unit | [N] | [N] | [N] | [X]% |
+```
+
+### Cross-Workspace Integration Tests
+If shared contracts exist in `docs/tech-specs/shared-schemas/`, generate integration tests that verify cross-workspace communication (e.g., backend ↔ Go service via gRPC).
 
 ## Agent Delegation
 

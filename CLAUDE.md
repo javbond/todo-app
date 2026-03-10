@@ -101,9 +101,12 @@ Current project state is tracked in `.sdlc/state.json`. All phase artifacts are 
 | `.claude/rules/` | Coding standards and conventions |
 | `.claude/hooks/` | Agent team event hooks (TaskCompleted, TeammateIdle) |
 
-## Git Workflow
+## Git Workflow (GitHub Flow)
+- Branch from `main`, merge back via PR — no `develop` or `release` branches
 - Branch naming: `feature/US-XXX-description`, `bugfix/BUG-XXX-description`
 - Commit format: `type(scope): description` (conventional commits)
 - Types: feat, fix, docs, style, refactor, test, chore
-- All changes via PRs with at least 1 review
-- Squash merge to main
+- All changes via PRs to `main` with at least 1 review
+- Squash merge to `main`
+- Post-merge: sync local main, delete feature branch
+- Releases: tag on `main`, no release branches
