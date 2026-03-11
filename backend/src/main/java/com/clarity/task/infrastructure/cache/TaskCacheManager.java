@@ -1,5 +1,6 @@
 package com.clarity.task.infrastructure.cache;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -10,6 +11,7 @@ import java.util.UUID;
  * Full implementation in Sprint 3.
  */
 @Component
+@ConditionalOnBean(RedisTemplate.class)
 public class TaskCacheManager {
 
     private final RedisTemplate<String, Object> redisTemplate;
