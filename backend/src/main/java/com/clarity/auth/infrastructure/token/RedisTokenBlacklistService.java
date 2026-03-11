@@ -1,5 +1,6 @@
 package com.clarity.auth.infrastructure.token;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -10,6 +11,7 @@ import java.time.Duration;
  * Full implementation in Sprint 2.
  */
 @Service
+@ConditionalOnBean(RedisTemplate.class)
 public class RedisTokenBlacklistService {
 
     private static final String KEY_PREFIX = "token:blacklist:";

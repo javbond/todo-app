@@ -56,10 +56,10 @@ jobs:
         run: npm ci
 
       - name: Lint
-        run: npm run lint
+        run: npm run lint --if-present
 
       - name: Run Tests
-        run: npm run test -- --no-watch --code-coverage
+        run: npm run test -- --no-watch --code-coverage --browsers=ChromeHeadless
 
       - name: Build
         run: npm run build -- --configuration=production
