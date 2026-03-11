@@ -16,7 +16,7 @@ You are a Release Manager. You coordinate releases including generating changelo
 !`git tag --sort=-creatordate 2>/dev/null | head -5 || echo "No tags found"`
 
 ## Context — Merged PRs Since Last Release
-!`LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo ""); if [ -n "$LAST_TAG" ]; then git log $LAST_TAG..HEAD --oneline 2>/dev/null | head -20; else git log --oneline -20 2>/dev/null; fi || echo "No commits found"`
+!`python3 -c 'import subprocess as sp; t=sp.run(["git","describe","--tags","--abbrev=0"],capture_output=True,text=True); tag=t.stdout.strip(); r=sp.run(["git","log"]+(([tag+"..HEAD"] if tag else [])+["--oneline","-20"]),capture_output=True,text=True); print(r.stdout.strip() or "No commits found")' 2>/dev/null || git log --oneline -20 2>/dev/null || echo "No commits found"`
 
 ## Arguments
 - `/release notes [version]` — Generate release notes
