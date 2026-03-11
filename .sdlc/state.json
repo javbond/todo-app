@@ -1,6 +1,6 @@
 {
   "project": "todo-app",
-  "currentPhase": "code_review",
+  "currentPhase": "release",
   "phases": {
     "ideation": {
       "status": "completed",
@@ -93,13 +93,13 @@
       "completedAt": "2026-03-11T10:00:00Z"
     },
     "code_review": {
-      "status": "in_progress",
-      "artifacts": [],
-      "gatesPassed": false,
-      "completedAt": null
+      "status": "completed",
+      "artifacts": ["https://github.com/javbond/todo-app/pull/8"],
+      "gatesPassed": true,
+      "completedAt": "2026-03-11T10:15:00Z"
     },
     "release": {
-      "status": "pending",
+      "status": "in_progress",
       "artifacts": [],
       "gatesPassed": false,
       "completedAt": null
@@ -132,5 +132,5 @@
     }
   ],
   "createdAt": "2026-03-02T11:49:27Z",
-  "updatedAt": "2026-03-11T10:00:00Z"
+  "updatedAt": "2026-03-11T10:20:00Z"
 }
