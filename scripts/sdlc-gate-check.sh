@@ -147,6 +147,20 @@ print(' '.join(dirs))
   testing)
     check_dir_not_empty "docs/testing" || FAILED=1
     ;;
+  uat)
+    if check_imported_docs "uat"; then
+      echo "INFO: UAT gate satisfied via imported/manual docs" >&2
+    else
+      check_dir_not_empty "docs/uat" || FAILED=1
+      if [ $FAILED -eq 0 ]; then
+        UAT_REPORT=$(find "$PROJECT_ROOT/docs/uat" -name "*uat-report*" -type f 2>/dev/null | head -1)
+        if [ -z "$UAT_REPORT" ]; then
+          echo "FAIL: No UAT report found in docs/uat/" >&2
+          FAILED=1
+        fi
+      fi
+    fi
+    ;;
   security)
     check_file_exists "docs/security/security-review.md" || FAILED=1
     ;;
@@ -192,7 +206,7 @@ else:
     ;;
   *)
     echo "Unknown phase: $PHASE" >&2
-    echo "Valid phases: ideation, requirements, project_setup, design, development, testing, security, code_review, release" >&2
+    echo "Valid phases: ideation, requirements, project_setup, design, development, testing, uat, security, code_review, release" >&2
     exit 1
     ;;
 esac

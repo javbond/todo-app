@@ -46,7 +46,7 @@ Quality gates enforce that each SDLC phase is complete before the next can begin
 - At least one sprint plan exists in `docs/sprints/`
 **Status field:** `phases.development.gatesPassed`
 
-### Gate 6: Testing → Security
+### Gate 6: Testing → UAT
 **Check:** All of the following:
 - Unit test coverage >= 80% (backend), >= 70% (frontend)
 - All unit tests pass
@@ -54,7 +54,15 @@ Quality gates enforce that each SDLC phase is complete before the next can begin
 - Test report saved to `docs/testing/`
 **Status field:** `phases.testing.gatesPassed`
 
-### Gate 7: Security → Code Review
+### Gate 7: UAT → Security
+**Check:** All of the following:
+- `docs/uat/` contains at least one UAT report
+- UAT report verdict is PASS (all Critical/High test cases passed)
+- No CRITICAL UAT failures without resolution
+- Failed items logged as backlog issues or fixed in sprint
+**Status field:** `phases.uat.gatesPassed`
+
+### Gate 8: Security → Code Review
 **Check:** All of the following:
 - `docs/security/security-review.md` exists
 - No CRITICAL severity findings open
@@ -62,7 +70,7 @@ Quality gates enforce that each SDLC phase is complete before the next can begin
 - Compliance checklist completed if applicable
 **Status field:** `phases.security.gatesPassed`
 
-### Gate 8: Code Review → Release
+### Gate 9: Code Review → Release
 **Check:** All of the following:
 - PR created and linked to user stories
 - At least 1 approval on PR
@@ -70,7 +78,7 @@ Quality gates enforce that each SDLC phase is complete before the next can begin
 - No unresolved review comments
 **Status field:** `phases.code_review.gatesPassed`
 
-### Gate 9: Release Complete
+### Gate 10: Release Complete
 **Check:** All of the following:
 - `docs/releases/` contains release notes
 - Git tag created for version

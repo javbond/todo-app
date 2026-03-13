@@ -54,6 +54,7 @@ After a PR is squash-merged to main:
 | Design | `docs/architecture/hld/`, `docs/architecture/lld/`, `docs/ddd/`, `docs/tech-specs/` |
 | Development | Source code + `docs/sprints/sprint-N-plan.md` |
 | Testing | Test reports in `docs/testing/` |
+| UAT | `docs/uat/sprint-N-uat-report.md` |
 | Security | `docs/security/security-review.md`, `docs/security/compliance-report.md` |
 | Code Review | PR created and linked to issues |
 | Release | `docs/releases/vX.Y.Z-release-notes.md` |

@@ -37,10 +37,11 @@ An AI-powered Software Development Lifecycle factory built on Claude Code. Trans
 | 5. Development | `/develop [layer] [story]` | Frontend/backend/API implementation |
 | 6. Testing | `/test-suite [type]` | Unit, integration, E2E, coverage |
 | 6. TDD | `/tdd-helper` | Test-driven development guidance |
-| 7. Security | `/security-review` | OWASP security audit |
-| 7. Compliance | `/compliance-checklist [industry]` | Regulatory compliance checks |
-| 8. PR | `/pr-review [action]` | PR creation and code review |
-| 9. Release | `/release [action]` | Release notes, checklist, tagging |
+| 7. UAT | `/uat-setup [action]` | UAT environment setup, test cases, reporting |
+| 8. Security | `/security-review` | OWASP security audit |
+| 8. Compliance | `/compliance-checklist [industry]` | Regulatory compliance checks |
+| 9. PR | `/pr-review [action]` | PR creation and code review |
+| 10. Release | `/release [action]` | Release notes, checklist, tagging |
 
 ### Agent Team Orchestration
 - `/build-with-agent-team [plan] [agents]` — Parallel sprint execution with split-pane visibility

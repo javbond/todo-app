@@ -120,7 +120,7 @@ Advance to the next phase:
    - Suggest which skills to run to satisfy the gate
    - Do NOT advance the phase
 
-Phase order: ideation → requirements → project_setup → design → development → testing → security → code_review → release
+Phase order: ideation → requirements → project_setup → design → development → testing → uat → security → code_review → release
 
 Phase-to-skill mapping for "Next Step" guidance:
 | Phase | Skills to Run |
@@ -131,6 +131,7 @@ Phase-to-skill mapping for "Next Step" guidance:
 | design | `/hld [project]`, `/lld [project]`, `/ddd-architect [domain]`, `/tech-specs [project] [stack]` |
 | development | `/scrum-sprint planning`, then `/develop [layer] [story]` |
 | testing | `/test-suite unit`, `/test-suite integration`, `/test-suite e2e` |
+| uat | `/uat-setup start [sprint]`, `/uat-setup test-cases [sprint]`, `/uat-setup report [sprint]` |
 | security | `/security-review`, `/compliance-checklist [industry]` |
 | code_review | `/pr-review create`, then `/pr-review review [pr-number]`, then `/pr-review merge [pr-number]` |
 | release | `/release notes`, `/release checklist`, `/release tag [version]` |
