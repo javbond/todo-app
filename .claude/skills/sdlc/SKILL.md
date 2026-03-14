@@ -113,6 +113,26 @@ Advance to the next phase:
    - Set next phase status to `"in_progress"`
    - Update `currentPhase` to next phase name
    - Update `updatedAt`
+   - **Commit phase artifacts** (if uncommitted changes in `docs/` or `.sdlc/`):
+     ```bash
+     # Check for uncommitted phase artifacts
+     PHASE_CHANGES=$(git status --porcelain docs/ .sdlc/state.json 2>/dev/null)
+     ```
+     If `PHASE_CHANGES` is non-empty, ask the user using AskUserQuestion:
+     > "Phase [completed_phase] artifacts are ready. Commit and push to GitHub?"
+     > - docs/ changes: [count] files
+     > - .sdlc/state.json updated
+
+     If user confirms:
+     ```bash
+     git add docs/ .sdlc/state.json
+     git commit -m "docs([completed_phase]): complete [Phase Name] — gate passed"
+     git push origin "$(git branch --show-current)" 2>/dev/null || git push origin main
+     ```
+     If user declines, display:
+     > "Skipped. Remember to commit before the next phase transition."
+
+     Commit message format: `docs(phase-name): complete [Phase Name] — gate passed`
    - Display success message with next steps and which skill to invoke
 5. If gate FAILS:
    - Display the failure reason from the gate check
